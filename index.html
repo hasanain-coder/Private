@@ -10,7 +10,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- مكتبة لقطة الشاشة + مكتبة توليد PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -55,7 +54,6 @@
         .matrix-table { border-collapse: collapse; min-width: 100%; }
         .matrix-table th, .matrix-table td { border: 1px solid var(--border); padding: 6px 4px; text-align: center; font-size: 0.8rem; }
         .matrix-table th:first-child, .matrix-table td:first-child { position: sticky; right: 0; z-index: 10; background: var(--card); box-shadow: -4px 0 8px rgba(0,0,0,0.05); min-width: 140px; text-align: right; padding-right: 8px; }
-        .vertical-text { writing-mode: vertical-lr; transform: rotate(180deg); height: 160px; white-space: nowrap; display: inline-block; font-weight: 600; }
 
         #capture-zone { position: fixed; top: 0; left: 0; z-index: -9999; background: white !important; color: black !important; }
 
@@ -156,16 +154,11 @@
 <script>
     const state = { patients: [], dailyLogs: [], medicationsDB: [], tempLogItems: [], currentView: 'admissions', activeFilter: 'all', editingLogId: null };
     
-    // تنظيف اسم الدواء من الجرعات (لإظهار اسم الدواء ونوعه فقط)
-    function cleanMedName(name) {
-        return name.replace(/\s+\d+(\.\d+)?\s*(mg|ml|g|mcg|%|iu|units?)?/gi, '').trim();
-    }
+    function cleanMedName(name) { return name.replace(/\s+\d+(\.\d+)?\s*(mg|ml|g|mcg|%|iu|units?)?/gi, '').trim(); }
     function toEnglishNum(str) { if(!str) return '0'; return str.toString().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
     function formatNum(num) { return new Intl.NumberFormat('en-US').format(num); }
-    function toVerticalText(str) { return str.split('').join('<br>'); }
 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0";
-    // أسماء الأدوية محدثة لتكون بدون جرعات
     const mockMeds = [
         {name: "Amoxicillin Cap", price: 250, source: "Kimadia"}, {name: "Ciprofloxacin Inj", price: 1500, source: "Purchase"},
         {name: "Normal Saline Sol", price: 1000, source: "Purchase"}, {name: "Dextrose Sol", price: 1200, source: "Kimadia"},
@@ -236,14 +229,14 @@
         if(id) { const idx = state.patients.findIndex(p => p.id === id); if(idx !== -1) state.patients[idx] = {...state.patients[idx], name, fileNumber, roomNumber, ward, admissionDate}; } else { state.patients.push({ id: 'p_' + Date.now(), name, fileNumber, roomNumber, ward, admissionDate, status: 'active' }); }
         saveState(); renderPatients(); closeModal('modal-patient'); showToast("تم الحفظ بنجاح");
     }
-    function deletePatient(id) { if(confirm("هل أنت متأكد من حذف المريض وجميع سجلاته؟")) { state.patients = state.patients.filter(p => p.id !== id); state.dailyLogs = state.dailyLogs.filter(l => l.patientId !== id); saveState(); renderPatients(); showToast("تم الحذف"); } }
+    function deletePatient(id) { if(confirm("حذف المريض؟")) { state.patients = state.patients.filter(p => p.id !== id); state.dailyLogs = state.dailyLogs.filter(l => l.patientId !== id); saveState(); renderPatients(); showToast("تم الحذف"); } }
 
     function populateDropdowns() { const opts = state.patients.filter(p => p.status === 'active').map(p => `<option value="${p.id}">${p.name} - ${p.ward === 'male' ? 'ذكور' : 'إناث'} (${p.roomNumber})</option>`).join(''); const def = `<option value="">-- اختر --</option>`; document.getElementById('log-patient').innerHTML = def + opts; document.getElementById('dis-patient').innerHTML = def + opts; }
-    function checkForExistingLog() { const pId = document.getElementById('log-patient').value; const date = document.getElementById('log-date').value; state.tempLogItems = []; state.editingLogId = null; if(pId && date) { const existing = state.dailyLogs.find(l => l.patientId === pId && l.date === date); if(existing) { state.tempLogItems = [...existing.items]; state.editingLogId = existing.id; showToast("تم تحميل سجل سابق للتعديل"); } } renderTempLog(); }
-    function addToTempLog() { const name = document.getElementById('log-med-search').value.trim(); const qty = parseInt(toEnglishNum(document.getElementById('log-qty').value)) || 0; if(!name || qty <= 0) return showToast("اختر العلاج وحدد كمية صحيحة"); const ex = state.tempLogItems.find(i => i.name === name); if(ex) ex.quantity += qty; else state.tempLogItems.push({ name, quantity: qty }); document.getElementById('log-med-search').value = ''; document.getElementById('log-qty').value = '1'; document.getElementById('med-dropdown').classList.add('hidden'); renderTempLog(); }
+    function checkForExistingLog() { const pId = document.getElementById('log-patient').value; const date = document.getElementById('log-date').value; state.tempLogItems = []; state.editingLogId = null; if(pId && date) { const existing = state.dailyLogs.find(l => l.patientId === pId && l.date === date); if(existing) { state.tempLogItems = [...existing.items]; state.editingLogId = existing.id; showToast("تم تحميل سجل سابق"); } } renderTempLog(); }
+    function addToTempLog() { const name = document.getElementById('log-med-search').value.trim(); const qty = parseInt(toEnglishNum(document.getElementById('log-qty').value)) || 0; if(!name || qty <= 0) return showToast("بيانات ناقصة"); const ex = state.tempLogItems.find(i => i.name === name); if(ex) ex.quantity += qty; else state.tempLogItems.push({ name, quantity: qty }); document.getElementById('log-med-search').value = ''; document.getElementById('log-qty').value = '1'; document.getElementById('med-dropdown').classList.add('hidden'); renderTempLog(); }
     function removeTempItem(i) { state.tempLogItems.splice(i, 1); renderTempLog(); }
-    function saveLog() { const pId = document.getElementById('log-patient').value; const date = document.getElementById('log-date').value; if(!pId || !date || state.tempLogItems.length === 0) return showToast("بيانات ناقصة"); if(state.editingLogId) { const idx = state.dailyLogs.findIndex(l => l.id === state.editingLogId); if(idx !== -1) state.dailyLogs[idx].items = [...state.tempLogItems]; } else { state.dailyLogs.push({ id: 'log_' + Date.now(), patientId: pId, date, items: [...state.tempLogItems] }); } state.tempLogItems = []; state.editingLogId = null; saveState(); renderTempLog(); document.getElementById('log-patient').value = ''; showToast("تم الحفظ بنجاح"); }
-    function deleteCurrentLog() { if(state.editingLogId && confirm("حذف سجل اليوم بالكامل؟")) { state.dailyLogs = state.dailyLogs.filter(l => l.id !== state.editingLogId); state.tempLogItems = []; state.editingLogId = null; saveState(); renderTempLog(); showToast("تم حذف السجل"); } }
+    function saveLog() { const pId = document.getElementById('log-patient').value; const date = document.getElementById('log-date').value; if(!pId || !date || state.tempLogItems.length === 0) return showToast("بيانات ناقصة"); if(state.editingLogId) { const idx = state.dailyLogs.findIndex(l => l.id === state.editingLogId); if(idx !== -1) state.dailyLogs[idx].items = [...state.tempLogItems]; } else { state.dailyLogs.push({ id: 'log_' + Date.now(), patientId: pId, date, items: [...state.tempLogItems] }); } state.tempLogItems = []; state.editingLogId = null; saveState(); renderTempLog(); document.getElementById('log-patient').value = ''; showToast("تم الحفظ"); }
+    function deleteCurrentLog() { if(state.editingLogId && confirm("حذف السجل؟")) { state.dailyLogs = state.dailyLogs.filter(l => l.id !== state.editingLogId); state.tempLogItems = []; state.editingLogId = null; saveState(); renderTempLog(); showToast("تم الحذف"); } }
 
     function renderMatrix() {
         const c = document.getElementById('matrix-container'); const date = document.getElementById('chart-date').value;
@@ -253,73 +246,35 @@
         if(medCols.length === 0) return c.innerHTML = `<p class="p-10 text-center" style="color:var(--muted)"><i class="fas fa-chart-simple text-3xl block mb-2 opacity-30"></i>لا توجد سجلات</p>`;
         let rows = Array.from({length: 30}, (_, i) => ({ num: i + 1, patient: null, meds: {} }));
         activeP.forEach((p, idx) => { if(idx < 30) { rows[idx].patient = p; dayLogs.filter(l => l.patientId === p.id).forEach(log => log.items.forEach(item => { const cName = cleanMedName(item.name); if(!rows[idx].meds[cName]) rows[idx].meds[cName] = 0; rows[idx].meds[cName] += item.quantity; })); }});
-        let html = `<table class="matrix-table"><thead><tr><th>ت / المريض</th>`; medCols.forEach(m => { html += `<th><div class="vertical-text">${m}</div></th>`; }); html += `</tr></thead><tbody>`; let totals = new Array(medCols.length).fill(0);
+        let html = `<table class="matrix-table"><thead><tr><th>ت / المريض</th>`; medCols.forEach(m => { html += `<th style="writing-mode: vertical-lr; height:150px; font-size:0.8rem;">${m}</th>`; }); html += `</tr></thead><tbody>`; let totals = new Array(medCols.length).fill(0);
         rows.forEach(row => { const pN = row.patient ? `${row.patient.name}` : ''; html += `<tr><td>${row.num}. ${pN}</td>`; medCols.forEach((m, i) => { const q = row.meds[m] || ''; if(q !== '') totals[i] += q; html += `<td class="font-bold" style="color: ${q ? 'var(--accent)' : 'var(--muted)'}">${q}</td>`; }); html += `</tr>`; });
         html += `<tr style="background: var(--surface); font-weight:900;"><td>الإجمالي</td>`; totals.forEach(t => { html += `<td>${t > 0 ? t : ''}</td>`; }); html += `</tr></tbody></table>`; c.innerHTML = html;
     }
 
-    // --- توليد خارطة A4 عرضي كـ PDF ---
     async function generateMatrixPDF() {
         const date = document.getElementById('chart-date').value; if(!date) return showToast("حدد التاريخ");
         const dayLogs = state.dailyLogs.filter(l => l.date === date); const activeP = state.patients.filter(p => p.status === 'active');
         let medsMap = {}; dayLogs.forEach(l => l.items.forEach(i => { medsMap[cleanMedName(i.name)] = true; })); 
         let medCols = Object.keys(medsMap);
         while(medCols.length < 35) medCols.push(""); if(medCols.length > 35) medCols = medCols.slice(0, 35);
-
         let rows = Array.from({length: 30}, (_, i) => ({ num: i + 1, patient: null, meds: {} }));
         activeP.forEach((p, idx) => { if(idx < 30) { rows[idx].patient = p; dayLogs.filter(l => l.patientId === p.id).forEach(log => log.items.forEach(item => { const cName = cleanMedName(item.name); if(!rows[idx].meds[cName]) rows[idx].meds[cName] = 0; rows[idx].meds[cName] += item.quantity; })); }});
-
-        // قياسات A4 عرضي بالبكسل (96 DPI)
-        const pageW = 1122; const pageH = 793; const pad = 25;
-        const innerW = pageW - (pad * 2); // 1072
-        const titleH = 30; const innerH = pageH - (pad * 2) - titleH - 5; // 713
-        const rowH = innerH / 31; // ~23px
-        const colNumW = 35; const colNameW = 95; const colMedW = (innerW - colNumW - colNameW) / 35; // ~28px
-
-        let thead = `<tr style="height:${rowH}px; background:#d9d9d9;"><th style="width:${colNumW}px; border:1px solid #000; padding:0; font-size:9px; color:#000; font-weight:bold;">ت</th><th style="width:${colNameW}px; border:1px solid #000; padding:0; font-size:9px; color:#000; font-weight:bold;">المريض</th>`;
-        medCols.forEach(m => {
-            thead += `<th style="width:${colMedW}px; border:1px solid #000; padding:0; overflow:hidden; color:#000;"><div style="height:100%; display:flex; align-items:center; justify-content:center; white-space:nowrap; font-size:9px; font-weight:bold; line-height:1.1;">${m ? toVerticalText(m) : ''}</div></th>`;
-        });
-        thead += `</tr>`;
-
+        const pageW = 1122; const pageH = 793; const pad = 20; const innerW = pageW - (pad * 2); const titleH = 30; const innerH = pageH - (pad * 2) - titleH - 10; const rowH = innerH / 31;
+        const colMargin = 25; const colNum = 35; const colName = 110; const colMedW = (innerW - (colMargin*2) - colNum - colName) / 35;
+        let thead = `<tr style="height:${rowH}px; background:#d9d9d9;"><th style="width:${colMargin}px; border:1px solid #000; padding:0; color:#000;"><div style="writing-mode: vertical-lr; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold;">الصحة العامة - وحدة العلاجية</div></th><th style="width:${colNum}px; border:1px solid #000; padding:0; font-size:10px; color:#000; font-weight:bold;">ت</th><th style="width:${colName}px; border:1px solid #000; padding:0; font-size:10px; color:#000; font-weight:bold;">الاسم</th>`;
+        medCols.forEach(m => { thead += `<th style="width:${colMedW}px; border:1px solid #000; padding:0; overflow:hidden; color:#000;"><div style="writing-mode: vertical-lr; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; white-space:nowrap;">${m}</div></th>`; });
+        thead += `<th style="width:${colMargin}px; border:1px solid #000; padding:0; color:#000;"><div style="writing-mode: vertical-lr; height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold;">التاريخ: ${date}</div></th></tr>`;
         let tbody = ''; let totals = new Array(35).fill(0);
-        rows.forEach(row => {
-            const pName = row.patient ? row.patient.name : '';
-            tbody += `<tr style="height:${rowH}px; background:#fff;"><td style="width:${colNumW}px; border:1px solid #000; padding:0; text-align:center; font-size:9px; color:#000;">${row.num}</td><td style="width:${colNameW}px; border:1px solid #000; padding:0 3px; text-align:right; font-size:9px; color:#000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${pName}</td>`;
-            medCols.forEach((m, idx) => {
-                const q = (m && row.meds[m]) ? row.meds[m] : '';
-                if(q !== '') totals[idx] += q;
-                tbody += `<td style="width:${colMedW}px; border:1px solid #000; padding:0; text-align:center; font-size:10px; color:#000; font-weight:bold;">${q}</td>`;
-            });
-            tbody += `</tr>`;
-        });
-        
-        tbody += `<tr style="height:${rowH}px; background:#e6e6e6; font-weight:bold;"><td colspan="2" style="border:1px solid #000; padding:0; text-align:center; font-size:9px; color:#000;">الإجمالي</td>`;
-        totals.forEach(t => { tbody += `<td style="border:1px solid #000; padding:0; text-align:center; font-size:10px; color:#000;">${t > 0 ? t : ''}</td>`; });
-        tbody += `</tr>`;
-
-        const fullHtml = `<div style="width:${pageW}px; height:${pageH}px; background:white; padding:${pad}px; box-sizing:border-box; font-family:Arial,sans-serif; overflow:hidden; position: relative;">
-            <div style="height:${titleH}px; text-align:center; font-size:16px; font-weight:bold; margin-bottom:5px; color:#000; line-height:${titleH}px;">Daily Medication Matrix - ${date}</div>
-            <table style="width:${innerW}px; height:${innerH}px; table-layout:fixed; border-collapse:collapse; border:1px solid #000;">
-                <thead>${thead}</thead><tbody>${tbody}</tbody>
-            </table></div>`;
-        
-        document.getElementById('capture-zone').innerHTML = fullHtml;
-        showLoading("جارٍ توليد الـ PDF...");
-        
+        rows.forEach(row => { const pName = row.patient ? row.patient.name : ''; tbody += `<tr style="height:${rowH}px; background:#fff;"><td style="border:1px solid #000; padding:0; font-size:10px; color:#000;">&nbsp;</td><td style="border:1px solid #000; padding:0; text-align:center; font-size:10px; color:#000;">${row.num}</td><td style="border:1px solid #000; padding:0 3px; text-align:right; font-size:10px; color:#000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${pName}</td>`; medCols.forEach((m, idx) => { const q = (m && row.meds[m]) ? row.meds[m] : ''; if(q !== '') totals[idx] += q; tbody += `<td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000; font-weight:bold;">${q}</td>`; }); tbody += `<td style="border:1px solid #000; padding:0; font-size:10px; color:#000;">&nbsp;</td></tr>`; });
+        tbody += `<tr style="height:${rowH}px; background:#e6e6e6; font-weight:bold;"><td colspan="3" style="border:1px solid #000; padding:0; text-align:center; font-size:10px; color:#000;">الإجمالي</td>`; totals.forEach(t => { tbody += `<td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${t > 0 ? t : ''}</td>`; }); tbody += `<td style="border:1px solid #000; padding:0; font-size:10px; color:#000;">&nbsp;</td></tr>`;
+        const fullHtml = `<div style="width:${pageW}px; height:${pageH}px; background:white; padding:${pad}px; box-sizing:border-box; font-family:Arial,sans-serif; overflow:hidden; position: relative; color:#000;"><div style="height:${titleH}px; text-align:center; font-size:16px; font-weight:bold; margin-bottom:10px; color:#000; line-height:${titleH}px;">Daily Medication Matrix - ${date}</div><table style="width:${innerW}px; height:${innerH}px; table-layout:fixed; border-collapse:collapse; border:2px solid #000;"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+        document.getElementById('capture-zone').innerHTML = fullHtml; showLoading("جارٍ توليد الـ PDF...");
         setTimeout(async () => {
-            try {
-                const canvas = await html2canvas(document.getElementById('capture-zone').firstChild, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 297, 210);
-                pdf.save(`Matrix_${date}.pdf`);
-            } catch(e) { console.error(e); showToast("حدث خطأ"); } 
-            finally { hideLoading(); }
+            try { const canvas = await html2canvas(document.getElementById('capture-zone').firstChild, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }); const { jsPDF } = window.jspdf; const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 297, 210); pdf.save(`Matrix_${date}.pdf`); } catch(e) { console.error(e); showToast("حدث خطأ"); } finally { hideLoading(); }
         }, 500);
     }
 
-    // --- توليد فاتورة A4 طولي كـ PDF ---
+    // --- توليد فاتورة A4 طولي (بتصميم الاستمارة الرسمية المرفقة بالصورة) ---
     async function generateInvoicePDF() {
         const pId = document.getElementById('dis-patient').value; const disDate = document.getElementById('dis-date').value;
         if(!pId || !disDate) return showToast("اختر المريض وتاريخ التصريف");
@@ -331,57 +286,112 @@
 
         showLoading("جارٍ توليد فاتورة الـ PDF...");
 
-        // قياسات A4 طولي بالبكسل
-        const pageW = 793; const pageH = 1122; const pad = 30;
-        const innerW = pageW - (pad * 2); // 733
-        const titleH = 70; const infoH = 35; const signH = 50; const gap = 10;
-        const tableH = pageH - (pad * 2) - titleH - infoH - signH - (gap * 3); // 897
-        const rowH = tableH / 25; // ~35px لكل صف
+        const pageW = 793; const pageH = 1122; const pad = 25;
+        const innerW = pageW - (pad * 2); // 743
+        
+        // تثبيت المقاسات ليطابق الاستمارة بالضبط
+        const headerH = 95; 
+        const gridH = 70;
+        const signH = 70;
+        const tableH = pageH - (pad * 2) - headerH - gridH - signH - 40; // 847
+        const rowH = tableH / 26; // ~32px (25 صف + 1 هيدر)
 
-        // أعمدة ثابتة العرض لتملأ الصفحة بالضبط
-        const cols = [
-            {w: 30, t:"ت"}, {w: 210, t:"اسم المادة"}, {w: 80, t:"الكمية المصروفة"}, {w: 95, t:"شراء أو كيماديا"},
-            {w: 95, t:"سعر المفرد"}, {w: 95, t:"المجموع"}, {w: 64, t:"فروقات إدارية"}, {w: 64, t:"الإجمالي"}
-        ];
-
-        let thead = `<tr style="height:${rowH}px; background:#d9d9d9;">`;
-        cols.forEach(c => { thead += `<th style="width:${c.w}px; border:1px solid #000; padding:0; font-size:11px; color:#000; font-weight:bold;">${c.t}</th>`; });
-        thead += `</tr>`;
-
-        let tbody = '';
-        for(let i=0; i<25; i++) {
-            if(i < meds.length) {
-                const [name, qty] = meds[i]; const dbM = state.medicationsDB.find(m => m.name === name); const price = dbM ? dbM.price : 0; const src = dbM ? dbM.source : ""; const sub = price * qty;
-                tbody += `<tr style="height:${rowH}px; background:#fff;"><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${i+1}</td><td style="border:1px solid #000; padding:0 4px; text-align:right; font-size:11px; color:#000;">${name}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${qty}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${src}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${price > 0 ? formatNum(price) : ''}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${sub > 0 ? formatNum(sub) : ''}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td></tr>`;
-            } else {
-                tbody += `<tr style="height:${rowH}px; background:#fff;">`;
-                cols.forEach((c, idx) => { tbody += `<td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${idx === 0 ? i+1 : '&nbsp;'}</td>`; });
-                tbody += `</tr>`;
-            }
-        }
-
-        const fullHtml = `<div style="width:${pageW}px; height:${pageH}px; background:white; padding:${pad}px; box-sizing:border-box; font-family:'Cairo',Arial,sans-serif; overflow:hidden; position:relative; color:#000;">
-            <div style="height:${titleH}px; text-align:center; font-weight:bold; font-size:16px; line-height:1.8; color:#000; display:flex; flex-direction:column; justify-content:center;">
-                <p>مستشفى بغداد التعليمي - وحدة الصيدلة السريرية</p>
-                <p>القطاع الخاص للمرضى الراقدين في الجناح الخاص</p>
-                <p style="font-size:14px;">قائمة الأدوية المصروفة من تاريخ: ${p.admissionDate} لغاية: ${disDate}</p>
-            </div>
+        const fullHtml = `
+        <div style="width:${pageW}px; height:${pageH}px; background:white; padding:${pad}px; box-sizing:border-box; font-family:'Cairo',Arial,sans-serif; overflow:hidden; position:relative; color:#000; display:flex; flex-direction:column;">
             
-            <div style="height:${infoH}px; display:flex; justify-content:space-between; align-items:center; margin-bottom:${gap}px; padding:0 10px; border:1px solid #000; font-size:13px; font-weight:bold; background:#f9f9f9; color:#000;">
-                <div>اسم المريض: ${p.name}</div>
-                <div>رقم الطبّلة: ${p.fileNumber}</div>
-                <div>الردهة: ${p.ward === 'male' ? 'ذكور' : 'إناث'}</div>
+            <!-- الترويسة -->
+            <div style="height:${headerH}px; text-align:center; border-bottom: 2px solid #000; display:flex; flex-direction:column; justify-content:center; margin-bottom:0px;">
+                <h2 style="margin:0; font-size:20px; font-weight:bold;">مستشفى بغداد التعليمي</h2>
+                <h3 style="margin:3px 0; font-size:16px; font-weight:bold;">القطاع الخاص - الجناح الخاص</h3>
+                <h4 style="margin:0; font-size:14px;">قائمة الأدوية المصروفة</h4>
             </div>
 
-            <table style="width:${innerW}px; height:${tableH}px; table-layout:fixed; border-collapse:collapse; border:1px solid #000;">
-                <thead>${thead}</thead>
-                <tbody>${tbody}</tbody>
+            <!-- شبكة معلومات المريض -->
+            <div style="height:${gridH}px; display:grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; border:1px solid #000; border-top:none; margin-bottom:0px; text-align:right;">
+                <div style="border-left:1px solid #000; padding:5px 8px;">
+                    <div style="font-size:10px; font-weight:bold; color:#555; border-bottom:1px dotted #ccc; padding-bottom:2px;">اسم المريض</div>
+                    <div style="font-size:14px; height:20px; line-height:20px; overflow:hidden;">${p.name}</div>
+                </div>
+                <div style="border-left:1px solid #000; padding:5px 8px;">
+                    <div style="font-size:10px; font-weight:bold; color:#555; border-bottom:1px dotted #ccc; padding-bottom:2px;">رقم الطبّلة</div>
+                    <div style="font-size:14px; height:20px; line-height:20px;">${p.fileNumber}</div>
+                </div>
+                <div style="padding:5px 8px;">
+                    <div style="font-size:10px; font-weight:bold; color:#555; border-bottom:1px dotted #ccc; padding-bottom:2px;">الردهة / الغرفة</div>
+                    <div style="font-size:14px; height:20px; line-height:20px;">${p.ward === 'male' ? 'ذكور' : 'إناث'} - ${p.roomNumber}</div>
+                </div>
+                <div style="border-top:1px solid #000; border-left:1px solid #000; padding:5px 8px;">
+                    <div style="font-size:10px; font-weight:bold; color:#555; border-bottom:1px dotted #ccc; padding-bottom:2px;">تاريخ الدخول</div>
+                    <div style="font-size:14px; height:20px; line-height:20px;">${p.admissionDate}</div>
+                </div>
+                <div style="border-top:1px solid #000; border-left:1px solid #000; padding:5px 8px;">
+                    <div style="font-size:10px; font-weight:bold; color:#555; border-bottom:1px dotted #ccc; padding-bottom:2px;">تاريخ التصريف</div>
+                    <div style="font-size:14px; height:20px; line-height:20px;">${disDate}</div>
+                </div>
+                <div style="border-top:1px solid #000; padding:5px 8px;">
+                    <div style="font-size:10px; font-weight:bold; color:#555; border-bottom:1px dotted #ccc; padding-bottom:2px;">الفترة</div>
+                    <div style="font-size:12px; height:20px; line-height:20px;">${p.admissionDate} الى ${disDate}</div>
+                </div>
+            </div>
+
+            <!-- جدول الأدوية -->
+            <table style="width:100%; border-collapse:collapse; table-layout:fixed; height:${tableH}px; flex-grow:1;">
+                <thead>
+                    <tr style="height:${rowH}px; background:#e0e0e0;">
+                        <th style="border:1px solid #000; width:5%; font-size:11px; padding:0; color:#000;">ت</th>
+                        <th style="border:1px solid #000; width:30%; font-size:11px; padding:0; color:#000;">اسم المادة</th>
+                        <th style="border:1px solid #000; width:8%; font-size:11px; padding:0; color:#000;">الكمية المصروفة</th>
+                        <th style="border:1px solid #000; width:14%; font-size:11px; padding:0; color:#000;">شراء / كيماديا</th>
+                        <th style="border:1px solid #000; width:13%; font-size:11px; padding:0; color:#000;">سعر المفرد</th>
+                        <th style="border:1px solid #000; width:13%; font-size:11px; padding:0; color:#000;">المجموع</th>
+                        <th style="border:1px solid #000; width:10%; font-size:11px; padding:0; color:#000;">فروقات إدارية</th>
+                        <th style="border:1px solid #000; width:10%; font-size:11px; padding:0; color:#000;">الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${Array.from({length: 25}).map((_, i) => {
+                        if(i < meds.length) {
+                            const [name, qty] = meds[i]; const dbM = state.medicationsDB.find(m => m.name === name); const price = dbM ? dbM.price : 0; const src = dbM ? dbM.source : ""; const sub = price * qty;
+                            return `<tr style="height:${rowH}px; background:#fff;">
+                                <td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${i+1}</td>
+                                <td style="border:1px solid #000; padding:0 5px; text-align:right; font-size:11px; color:#000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${name}</td>
+                                <td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${qty}</td>
+                                <td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${src}</td>
+                                <td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${price > 0 ? formatNum(price) : ''}</td>
+                                <td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${sub > 0 ? formatNum(sub) : ''}</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                            </tr>`;
+                        } else {
+                            return `<tr style="height:${rowH}px; background:#fff;">
+                                <td style="border:1px solid #000; padding:0; text-align:center; font-size:11px; color:#000;">${i+1}</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                                <td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td>
+                            </tr>`;
+                        }
+                    }).join('')}
+                </tbody>
             </table>
 
-            <div style="height:${signH}px; display:flex; justify-content:space-between; align-items:flex-end; margin-top:${gap}px; font-weight:bold; font-size:14px; color:#000; padding-bottom:10px;">
-                <div>الصيدلي السريري</div>
-                <div>اسم وتوقيع محاسب الجناح الخاص</div>
-                <div>اسم وتوقيع مدير الجناح الخاص</div>
+            <!-- التوقيعات -->
+            <div style="height:${signH}px; display:flex; justify-content:space-between; align-items:flex-end; padding-top:10px; font-size:13px; font-weight:bold; color:#000;">
+                <div style="text-align:center; width:30%;">
+                    <div style="border-bottom:1px solid #000; margin-bottom:5px; height:25px;"></div>
+                    الصيدلي السريري
+                </div>
+                <div style="text-align:center; width:30%;">
+                    <div style="border-bottom:1px solid #000; margin-bottom:5px; height:25px;"></div>
+                    محاسب الجناح الخاص
+                </div>
+                <div style="text-align:center; width:30%;">
+                    <div style="border-bottom:1px solid #000; margin-bottom:5px; height:25px;"></div>
+                    مدير الجناح الخاص
+                </div>
             </div>
         </div>`;
 
