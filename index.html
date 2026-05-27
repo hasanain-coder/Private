@@ -1,1 +1,800 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>الصيدلة السريرية - الجناح الخاص</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Firebase Compat SDK (No build step required) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0f766e',
+                        secondary: '#14b8a6',
+                        accent: '#f97316',
+                        dark: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Hide scrollbars for a cleaner mobile app feel */
+        body::-webkit-scrollbar, .matrix-container::-webkit-scrollbar { display: none; }
+        body, .matrix-container { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Vertical Text for Matrix Chart Headers */
+        .vertical-text {
+            writing-mode: vertical-lr;
+            transform: rotate(180deg);
+            height: 180px; 
+            white-space: nowrap;
+            text-align: left;
+            padding: 10px 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        /* Matrix Table Sticky First Column */
+        .matrix-table th:first-child, .matrix-table td:first-child {
+            position: sticky;
+            right: 0; /* RTL sticky side */
+            z-index: 10;
+            background-color: white;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        /* Print Layout for A4 Invoice */
+        @media print {
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { 
+                position: absolute; 
+                right: 0; top: 0; 
+                width: 100%; 
+                padding: 20px;
+                margin: 0;
+                box-shadow: none !important;
+                background: white;
+            }
+            .print-table { width: 100%; border-collapse: collapse; }
+            .print-table th, .print-table td { 
+                border: 1px solid black !important; 
+                padding: 8px 4px; 
+                font-size: 12px; 
+                text-align: center; 
+            }
+            .print-table th { background-color: #f0f0f0 !important; }
+            .print-header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; line-height: 1.8;}
+            .print-signatures { display: flex; justify-content: space-between; margin-top: 60px; font-size: 14px; font-weight: bold;}
+        }
+
+        /* Custom Autocomplete Dropdown */
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; right: 0; background: white;
+            border: 1px solid #cbd5e1; border-top: none; z-index: 50; max-height: 250px; overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .autocomplete-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+        .autocomplete-item:hover { background-color: #f0fdfa; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 pb-20 min-h-screen">
+
+    <!-- Top Header -->
+    <header class="bg-primary text-white p-4 shadow-lg sticky top-0 z-40 flex items-center justify-between">
+        <div>
+            <h1 class="text-lg font-bold">الصيدلة السريرية</h1>
+            <p class="text-xs text-teal-200">الجناح الخاص - مستشفى بغداد التعليمي</p>
+        </div>
+        <i class="fas fa-hospital text-2xl text-teal-200"></i>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="p-4 max-w-4xl mx-auto">
+        
+        <!-- VIEW 1: ADMISSIONS -->
+        <div id="view-admissions" class="view-section">
+            <h2 class="text-xl font-bold text-dark mb-4">المرضى الراقدين</h2>
+            <div id="patients-list" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+            <div id="no-patients-msg" class="hidden text-center text-gray-500 mt-10">
+                <i class="fas fa-user-plus text-4xl mb-3"></i>
+                <p>لا يوجد مرضى حالياً</p>
+            </div>
+        </div>
+
+        <!-- VIEW 2: DAILY LOG -->
+        <div id="view-log" class="view-section hidden">
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1">اختر المريض</label>
+                    <select id="log-patient-select" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
+                        <option value="">-- اختر --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">التاريخ</label>
+                    <input type="date" id="log-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
+                </div>
+                
+                <!-- Autocomplete Section -->
+                <div class="relative">
+                    <label class="block text-sm font-bold mb-1">اسم الدواء / المادة</label>
+                    <input type="text" id="med-search-input" placeholder="ابحث عن دواء..." autocomplete="off" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <div id="med-dropdown" class="autocomplete-list hidden rounded-b-lg"></div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold mb-1">الكمية</label>
+                    <input type="number" id="med-quantity" min="1" value="1" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+
+                <button onclick="addLogItem()" class="w-full bg-secondary text-white font-bold py-3 rounded-lg hover:bg-teal-700 transition">
+                    <i class="fas fa-plus ml-2"></i> أضافة للقائمة اليومية
+                </button>
+            </div>
+
+            <!-- Temporary Log List -->
+            <div class="bg-white p-4 rounded-xl shadow-sm">
+                <h3 class="font-bold mb-3 border-b pb-2">قائمة المصروفة لهذا المريض اليوم:</h3>
+                <div id="temp-log-list" class="space-y-2 max-h-60 overflow-y-auto">
+                    <p class="text-gray-400 text-sm text-center py-4">القائمة فارغة</p>
+                </div>
+                <button id="btn-save-log" onclick="saveDailyLog()" disabled class="w-full mt-4 bg-primary text-white font-bold py-3 rounded-lg hover:bg-teal-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-cloud-upload-alt ml-2"></i> حفظ في السجل (فيربيس)
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 3: DAILY CHART MATRIX -->
+        <div id="view-chart" class="view-section hidden">
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-4">
+                <label class="block text-sm font-bold mb-1">اختر تاريخ اليوم</label>
+                <input type="date" id="chart-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50" onchange="generateMatrix()">
+            </div>
+            <div class="matrix-container bg-white rounded-xl shadow-sm overflow-hidden">
+                <table id="matrix-table" class="matrix-table w-max min-w-full">
+                    <!-- Populated by JS -->
+                </table>
+                <div id="no-chart-data" class="hidden text-center text-gray-500 p-10">
+                    <i class="fas fa-table text-4xl mb-3"></i>
+                    <p>لا توجد سجلات لهذا اليوم</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: DISCHARGE & BILLING -->
+        <div id="view-discharge" class="view-section hidden">
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1">اختر المريض للتصريف</label>
+                    <select id="dis-patient-select" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
+                        <option value="">-- اختر --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">تاريخ التصريف</label>
+                    <input type="date" id="dis-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
+                </div>
+                <button onclick="generateInvoice()" class="w-full bg-accent text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition">
+                    <i class="fas fa-file-invoice-dollar ml-2"></i> توليد الفاتورة والطباعة
+                </button>
+            </div>
+            <div id="dis-preview" class="bg-white p-4 rounded-xl shadow-sm hidden">
+                <button onclick="printInvoice()" class="w-full bg-dark text-white font-bold py-3 rounded-lg mb-4 hover:bg-gray-800 transition">
+                    <i class="fas fa-print ml-2"></i> طباعة A4
+                </button>
+                <div id="invoice-container" class="border p-4 text-sm" style="font-family: 'Traditional Arabic', serif;">
+                    <!-- Invoice HTML generated here -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Hidden Print Area (Used by @media print) -->
+    <div id="print-area" class="hidden">
+        <!-- Invoice content cloned here right before printing -->
+    </div>
+
+    <!-- FAB - Add New Patient -->
+    <button onclick="openModal('modal-add-patient')" id="fab-add" class="fixed bottom-24 left-4 bg-accent text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl z-50 hover:bg-orange-600 transition-transform active:scale-95">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-2 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+        <button onclick="switchView('admissions')" class="nav-btn flex flex-col items-center text-primary" data-view="admissions">
+            <i class="fas fa-bed text-xl mb-1"></i>
+            <span class="text-xs font-bold">المرضى</span>
+        </button>
+        <button onclick="switchView('log')" class="nav-btn flex flex-col items-center text-gray-400" data-view="log">
+            <i class="fas fa-pills text-xl mb-1"></i>
+            <span class="text-xs font-bold">السجل اليومي</span>
+        </button>
+        <button onclick="switchView('chart')" class="nav-btn flex flex-col items-center text-gray-400" data-view="chart">
+            <i class="fas fa-th text-xl mb-1"></i>
+            <span class="text-xs font-bold">الخارطة</span>
+        </button>
+        <button onclick="switchView('discharge')" class="nav-btn flex flex-col items-center text-gray-400" data-view="discharge">
+            <i class="fas fa-file-invoice text-xl mb-1"></i>
+            <span class="text-xs font-bold">التصريف</span>
+        </button>
+    </nav>
+
+    <!-- MODAL: Add Patient -->
+    <div id="modal-add-patient" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-dark">دخول مريض جديد</h3>
+                <button onclick="closeModal('modal-add-patient')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1">اسم المريض</label>
+                    <input type="text" id="p-name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary" placeholder="أحمد محمد">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">رقم الطبّلة</label>
+                    <input type="text" id="p-file" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary" placeholder="12345">
+                </div>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm font-bold mb-1">الردهة</label>
+                        <select id="p-ward" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50">
+                            <option value="male">ذكور</option>
+                            <option value="female">إناث</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-bold mb-1">الغرفة</label>
+                        <input type="text" id="p-room" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary" placeholder="1">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">تاريخ الدخول</label>
+                    <input type="date" id="p-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50">
+                </div>
+                <button onclick="admitPatient()" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-teal-900 transition mt-2">
+                    تسجيل الدخول
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-dark text-white px-6 py-3 rounded-lg shadow-lg z-[60] transition-opacity duration-300 opacity-0 pointer-events-none">
+        تمت العملية بنجاح
+    </div>
+
+<script>
+    // --- 1. FIREBASE INITIALIZATION ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCn9iqxCcTnE36s0YS08nyMLQXfbUbJpOA",
+        authDomain: "private-9140c.firebaseapp.com",
+        projectId: "private-9140c",
+        storageBucket: "private-9140c.firebasestorage.app",
+        messagingSenderId: "918205705807",
+        appId: "1:918205705807:web:a3fbc75f210c025902c43a",
+        measurementId: "G-YKT5S2NT2B"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // --- 2. GLOBAL STATE & DATABASE ---
+    let medicationsDB = []; // Will hold the parsed Google Sheet data
+    let activePatients = []; // Real-time synced list
+    let tempLogItems = []; // Holds items before final daily log save
+
+    // Mock Data Fallback (If Google Sheet fails)
+    const mockMedications = [
+        { name: "أموكسيسيلين 500mg كبسولة", price: 250, source: "كيماديا" },
+        { name: "سيبروفلوكساسين 400mg حقنة", price: 1500, source: "شراء" },
+        { name: "محلول ملحي 0.9% 500مل", price: 1000, source: "شراء" },
+        { name: "محلول جلوكوز 5% 500مل", price: 1200, source: "كيماديا" },
+        { name: "باراسيتامول 500mg قرص", price: 100, source: "كيماديا" },
+        { name: "دكساميثازون 8mg حقنة", price: 800, source: "شراء" },
+        { name: "أوميبرازول 40mg كبسولة", price: 350, source: "كيماديا" },
+        { name: "اتروبين 0.1% حقنة", price: 500, source: "شراء" },
+        { name: "قفازات طبية (علبة)", price: 2500, source: "شراء" },
+        { name: "محاقن 10مل", price: 300, source: "كيماديا" }
+    ];
+
+    // --- 3. GOOGLE SHEETS FETCHING ---
+    // REPLACE THIS URL WITH YOUR ACTUAL GOOGLE SHEET CSV EXPORT LINK
+    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0";
+
+    async function fetchMedications() {
+        try {
+            const response = await fetch(GOOGLE_SHEET_CSV_URL);
+            if (!response.ok) throw new Error("Network response was not ok");
+            const csvText = await response.text();
+            medicationsDB = parseCSV(csvText);
+            if(medicationsDB.length === 0) throw new Error("Parsed 0 items");
+            console.log("Successfully loaded from Google Sheet");
+        } catch (error) {
+            console.warn("Failed to load Google Sheet, using Mock Data. Error:", error);
+            medicationsDB = mockMedications;
+        }
+    }
+
+    // Lightweight CSV Parser handling Arabic and quotes
+    function parseCSV(csv) {
+        const lines = csv.split('\n').filter(line => line.trim() !== '');
+        const result = [];
+        // Skip header row if exists
+        for (let i = 1; i < lines.length; i++) {
+            // Regex to split by comma, but ignore commas inside double quotes
+            const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            if (cols && cols.length >= 2) {
+                // Clean quotes and spaces
+                const name = cols[0].replace(/^"|"$/g, '').trim();
+                const price = parseFloat(cols[1].replace(/[,|\s]/g, '')) || 0;
+                const source = (cols[2] || "كيماديا").replace(/^"|"$/g, '').trim();
+                if (name) result.push({ name, price, source });
+            }
+        }
+        return result;
+    }
+
+    // --- 4. REAL-TIME FIRESTORE LISTENERS ---
+    function initFirestoreListeners() {
+        // PHASE 2: Add .where("ward", "==", currentUser.ward) here
+        
+        db.collection('patients').where("status", "==", "active")
+            .onSnapshot((snapshot) => {
+                activePatients = [];
+                snapshot.forEach(doc => {
+                    activePatients.push({ id: doc.id, ...doc.data() });
+                });
+                renderPatientsList();
+                updatePatientDropdowns();
+            }, (error) => {
+                console.error("Error listening to patients: ", error);
+                showToast("خطأ في تحديث قائمة المرضى", "error");
+            });
+    }
+
+    // --- 5. UI NAVIGATION & UTILITIES ---
+    function switchView(viewName) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`view-${viewName}`).classList.remove('hidden');
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('text-primary');
+            btn.classList.add('text-gray-400');
+        });
+        document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.remove('text-gray-400');
+        document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add('text-primary');
+
+        // Show FAB only on admissions view
+        document.getElementById('fab-add').classList.toggle('hidden', viewName !== 'admissions');
+        
+        // Set default dates
+        if (viewName === 'log' || viewName === 'chart') {
+            const today = new Date().toISOString().split('T')[0];
+            if(viewName === 'log') document.getElementById('log-date').value = today;
+            if(viewName === 'chart' && !document.getElementById('chart-date').value) {
+                document.getElementById('chart-date').value = today;
+                generateMatrix();
+            }
+        }
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function showToast(message, type = "success") {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-[60] transition-opacity duration-300 opacity-100 pointer-events-none ${type === 'error' ? 'bg-red-600' : 'bg-dark'} text-white`;
+        setTimeout(() => { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2500);
+    }
+
+    function formatIQD(amount) {
+        if (!amount && amount !== 0) return '';
+        return new Intl.NumberFormat('en-US').format(amount) + " د.ع";
+    }
+
+    function updatePatientDropdowns() {
+        const options = activePatients.map(p => 
+            `<option value="${p.id}">${p.name} - ${p.ward === 'male' ? 'ذكور' : 'إناث'} - غرفة ${p.roomNumber}</option>`
+        ).join('');
+        
+        document.getElementById('log-patient-select').innerHTML = `<option value="">-- اختر --</option>${options}`;
+        document.getElementById('dis-patient-select').innerHTML = `<option value="">-- اختر --</option>${options}`;
+    }
+
+    // --- 6. PATIENTS ADMISSION LOGIC ---
+    function admitPatient() {
+        const name = document.getElementById('p-name').value.trim();
+        const fileNumber = document.getElementById('p-file').value.trim();
+        const ward = document.getElementById('p-ward').value;
+        const roomNumber = document.getElementById('p-room').value.trim();
+        const admissionDate = document.getElementById('p-date').value;
+
+        if (!name || !fileNumber || !roomNumber || !admissionDate) {
+            showToast("يرجى ملء جميع الحقول", "error");
+            return;
+        }
+
+        db.collection('patients').add({
+            name, fileNumber, ward, roomNumber, admissionDate,
+            status: 'active',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            closeModal('modal-add-patient');
+            document.getElementById('p-name').value = '';
+            document.getElementById('p-file').value = '';
+            document.getElementById('p-room').value = '';
+            showToast("تم تسجيل المريض بنجاح");
+        }).catch((err) => {
+            console.error(err);
+            showToast("حدث خطأ أثناء الحفظ", "error");
+        });
+    }
+
+    function renderPatientsList() {
+        const container = document.getElementById('patients-list');
+        const noMsg = document.getElementById('no-patients-msg');
+        
+        if (activePatients.length === 0) {
+            container.innerHTML = '';
+            noMsg.classList.remove('hidden');
+            return;
+        }
+        
+        noMsg.classList.add('hidden');
+        container.innerHTML = activePatients.map(p => `
+            <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border-r-4 ${p.ward === 'male' ? 'border-blue-500' : 'border-pink-500'}">
+                <div>
+                    <h3 class="font-bold text-dark">${p.name}</h3>
+                    <p class="text-sm text-gray-500">طبّلة: ${p.fileNumber} | غرفة: ${p.roomNumber}</p>
+                    <p class="text-xs text-gray-400 mt-1">دخل بتاريخ: ${p.admissionDate}</p>
+                </div>
+                <div class="text-left">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded block mb-2">${p.ward === 'male' ? 'ذكور' : 'إناث'}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // --- 7. DAILY LOGIC LOGIC ---
+    // Autocomplete Logic
+    const medInput = document.getElementById('med-search-input');
+    const medDropdown = document.getElementById('med-dropdown');
+
+    medInput.addEventListener('input', function() {
+        const val = this.value.trim();
+        if (val.length < 2) { medDropdown.classList.add('hidden'); return; }
+        
+        const filtered = medicationsDB.filter(m => m.name.includes(val)).slice(0, 10);
+        if (filtered.length === 0) { medDropdown.classList.add('hidden'); return; }
+
+        medDropdown.innerHTML = filtered.map(m => `
+            <div class="autocomplete-item flex justify-between" onclick="selectMed('${m.name}')">
+                <span>${m.name}</span>
+                <span class="text-xs text-gray-400">${m.source}</span>
+            </div>
+        `).join('');
+        medDropdown.classList.remove('hidden');
+    });
+
+    // Close dropdown if clicked outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#med-search-input') && !e.target.closest('#med-dropdown')) {
+            medDropdown.classList.add('hidden');
+        }
+    });
+
+    function selectMed(name) {
+        medInput.value = name;
+        medDropdown.classList.add('hidden');
+        document.getElementById('med-quantity').focus();
+    }
+
+    function addLogItem() {
+        const name = medInput.value.trim();
+        const qty = parseInt(document.getElementById('med-quantity').value);
+        const patientId = document.getElementById('log-patient-select').value;
+
+        if (!name || !qty || !patientId) {
+            showToast("اختر المريض والدواء والكمية", "error"); return;
+        }
+
+        // Check if already added, if so, increment quantity
+        const existing = tempLogItems.find(i => i.name === name);
+        if (existing) {
+            existing.quantity += qty;
+        } else {
+            tempLogItems.push({ name, quantity: qty });
+        }
+
+        medInput.value = '';
+        document.getElementById('med-quantity').value = 1;
+        renderTempLog();
+    }
+
+    function removeTempLogItem(index) {
+        tempLogItems.splice(index, 1);
+        renderTempLog();
+    }
+
+    function renderTempLog() {
+        const container = document.getElementById('temp-log-list');
+        const btn = document.getElementById('btn-save-log');
+        
+        if (tempLogItems.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">القائمة فارغة</p>';
+            btn.disabled = true;
+            return;
+        }
+
+        btn.disabled = false;
+        container.innerHTML = tempLogItems.map((item, i) => `
+            <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                <span class="text-sm flex-1">${item.name}</span>
+                <span class="font-bold text-primary mx-2">x${item.quantity}</span>
+                <button onclick="removeTempLogItem(${i})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        `).join('');
+    }
+
+    function saveDailyLog() {
+        const patientId = document.getElementById('log-patient-select').value;
+        const date = document.getElementById('log-date').value;
+
+        if (!patientId || !date || tempLogItems.length === 0) {
+            showToast("بيانات ناقصة", "error"); return;
+        }
+
+        // Save to Firestore
+        db.collection('dailyLogs').add({
+            patientId,
+            date,
+            items: tempLogItems,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+            tempLogItems = [];
+            renderTempLog();
+            document.getElementById('log-patient-select').value = '';
+            showToast("تم حفظ السجل اليومي بنجاح في فيربيس");
+        }).catch((err) => {
+            console.error(err);
+            showToast("خطأ في الحفظ", "error");
+        });
+    }
+
+    // --- 8. DAILY CHART MATRIX ---
+    async function generateMatrix() {
+        const date = document.getElementById('chart-date').value;
+        const table = document.getElementById('matrix-table');
+        const noData = document.getElementById('no-chart-data');
+
+        if (!date) { table.innerHTML = ''; noData.classList.remove('hidden'); return; }
+
+        // PHASE 2: Filter by ward here if needed
+        const snapshot = await db.collection('dailyLogs').where('date', '==', date).get();
+        
+        if (snapshot.empty) {
+            table.innerHTML = '';
+            noData.classList.remove('hidden');
+            return;
+        }
+        noData.classList.add('hidden');
+
+        // Process Data into a matrix structure
+        let matrixData = {}; // { patientId: { patientName, ward, meds: { medName: totalQty } } }
+        let allMedsSet = new Set();
+
+        snapshot.forEach(doc => {
+            const log = doc.data();
+            const patient = activePatients.find(p => p.id === log.patientId);
+            if (!patient) return; // Skip if patient discharged/unknown
+
+            if (!matrixData[patient.id]) {
+                matrixData[patient.id] = { name: patient.name, ward: patient.ward, meds: {} };
+            }
+
+            log.items.forEach(item => {
+                allMedsSet.add(item.name);
+                if (!matrixData[patient.id].meds[item.name]) matrixData[patient.id].meds[item.name] = 0;
+                matrixData[patient.id].meds[item.name] += item.quantity;
+            });
+        });
+
+        const medsArray = Array.from(allMedsSet);
+        const patientsArray = Object.keys(matrixData);
+
+        // Build Table HTML
+        let html = `<thead><tr class="bg-gray-50">
+                        <th class="p-2 border-b text-right min-w-[120px]">المريض</th>`;
+        
+        medsArray.forEach(med => {
+            html += `<th class="p-0 border-b text-center min-w-[40px]"><div class="vertical-text">${med}</div></th>`;
+        });
+        
+        html += `</tr></thead><tbody>`;
+
+        // Totals row array
+        let totals = new Array(medsArray.length).fill(0);
+
+        patientsArray.forEach(pId => {
+            const pData = matrixData[pId];
+            html += `<tr class="border-b hover:bg-gray-50">
+                        <td class="p-2 font-medium text-sm">
+                            ${pData.name} <span class="text-xs text-gray-400">(${pData.ward === 'male' ? 'ذ' : 'ث'})</span>
+                        </td>`;
+            
+            medsArray.forEach((med, idx) => {
+                const qty = pData.meds[med] || '';
+                if (qty !== '') totals[idx] += qty;
+                html += `<td class="p-2 text-center font-bold text-primary">${qty}</td>`;
+            });
+            html += `</tr>`;
+        });
+
+        // Bottom Totals Row
+        html += `<tr class="bg-teal-50 font-black text-dark">
+                    <td class="p-2 border-t-2 border-teal-200">الإجمالي</td>`;
+        totals.forEach(t => {
+            html += `<td class="p-2 text-center border-t-2 border-teal-200">${t > 0 ? t : ''}</td>`;
+        });
+        html += `</tr></tbody>`;
+
+        table.innerHTML = html;
+    }
+
+    // --- 9. DISCHARGE & INVOICE LOGIC ---
+    async function generateInvoice() {
+        const patientId = document.getElementById('dis-patient-select').value;
+        const dischargeDate = document.getElementById('dis-date').value;
+        const previewDiv = document.getElementById('dis-preview');
+        const invoiceContainer = document.getElementById('invoice-container');
+
+        if (!patientId || !dischargeDate) {
+            showToast("اختر المريض وتاريخ التصريف", "error"); return;
+        }
+
+        const patient = activePatients.find(p => p.id === patientId);
+        if (!patient) return;
+
+        showToast("جارٍ تجميع البيانات...");
+
+        // Fetch all logs for this patient from admission to discharge
+        const snapshot = await db.collection('dailyLogs')
+            .where('patientId', '==', patientId)
+            .where('date', '>=', patient.admissionDate)
+            .where('date', '<=', dischargeDate)
+            .get();
+
+        // Aggregate items
+        let aggregatedMeds = {};
+        snapshot.forEach(doc => {
+            doc.data().items.forEach(item => {
+                if (!aggregatedMeds[item.name]) aggregatedMeds[item.name] = 0;
+                aggregatedMeds[item.name] += item.quantity;
+            });
+        });
+
+        const medsArray = Object.entries(aggregatedMeds); // [[name, qty], ...]
+        
+        if (medsArray.length === 0) {
+            showToast("لا توجد أدوية مسجلة لهذه الفترة", "error");
+            previewDiv.classList.add('hidden');
+            return;
+        }
+
+        // Build Official Invoice HTML
+        let invoiceHTML = `
+            <div class="print-header">
+                <p>مستشفى بغداد التعليمي - وحدة الصيدلة السريرية</p>
+                <p>القطاع الخاص للمرضى الراقدين في الجناح الخاص</p>
+                <p>قائمة الأدوية المصروفة من تاريخ: ${patient.admissionDate} لغاية: ${dischargeDate}</p>
+            </div>
+            
+            <div class="flex justify-around mb-4 text-base font-bold border-b pb-2">
+                <div>اسم المريض: ${patient.name}</div>
+                <div>رقم الطبّلة: ${patient.fileNumber}</div>
+                <div>الردهة: ${patient.ward === 'male' ? 'ذكور' : 'إناث'}</div>
+            </div>
+
+            <table class="print-table w-full">
+                <thead>
+                    <tr>
+                        <th>ت</th>
+                        <th>اسم المادة</th>
+                        <th>الكمية المصروفة</th>
+                        <th>شراء أو كيماديا</th>
+                        <th>سعر المفرد</th>
+                        <th>المجموع</th>
+                        <th>فروقات إدارية</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        let grandTotalSum = 0;
+
+        medsArray.forEach(([name, qty], index) => {
+            const dbMed = medicationsDB.find(m => m.name === name);
+            const price = dbMed ? dbMed.price : 0;
+            const source = dbMed ? dbMed.source : "";
+            const subtotal = price * qty;
+            
+            // Leave فروقات and Grand Total blank for handwriting as requested
+            invoiceHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td class="text-right pr-2" style="text-align:right!important;">${name}</td>
+                    <td>${qty}</td>
+                    <td>${source}</td>
+                    <td>${price > 0 ? formatIQD(price) : ''}</td>
+                    <td>${subtotal > 0 ? formatIQD(subtotal) : ''}</td>
+                    <td style="height: 30px;"></td> <!-- Blank for handwriting -->
+                    <td style="height: 30px;"></td> <!-- Blank for handwriting -->
+                </tr>`;
+        });
+
+        invoiceHTML += `
+                </tbody>
+            </table>
+
+            <div class="print-signatures mt-16">
+                <div>الصيدلي السريري</div>
+                <div>اسم وتوقيع محاسب الجناح الخاص</div>
+                <div>اسم وتوقيع مدير الجناح الخاص</div>
+            </div>`;
+
+        invoiceContainer.innerHTML = invoiceHTML;
+        previewDiv.classList.remove('hidden');
+        previewDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function printInvoice() {
+        const printArea = document.getElementById('print-area');
+        printArea.innerHTML = document.getElementById('invoice-container').innerHTML;
+        printArea.classList.remove('hidden');
+        window.print();
+        // Hide print area again after printing dialog closes
+        setTimeout(() => { printArea.classList.add('hidden'); }, 500);
+    }
+
+    // --- 10. INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('p-date').value = today;
+        document.getElementById('dis-date').value = today;
+        
+        // Load Medications (Google Sheet or Fallback)
+        await fetchMedications();
+        
+        // Start Real-time Listeners
+        initFirestoreListeners();
+        
+        // Initial View
+        switchView('admissions');
+    });
+
+</script>
+</body>
+</html>
