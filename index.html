@@ -5,795 +5,853 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>الصيدلة السريرية - الجناح الخاص</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Fonts & CDNs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Firebase Compat SDK (No build step required) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0f766e',
-                        secondary: '#14b8a6',
-                        accent: '#f97316',
-                        dark: '#1e293b'
-                    }
-                }
-            }
-        }
-    </script>
 
     <style>
-        /* Hide scrollbars for a cleaner mobile app feel */
-        body::-webkit-scrollbar, .matrix-container::-webkit-scrollbar { display: none; }
-        body, .matrix-container { -ms-overflow-style: none; scrollbar-width: none; }
+        /* === 1. THEMING & CSS VARIABLES === */
+        :root {
+            --bg: #f8fafc;
+            --fg: #0f172a;
+            --muted: #64748b;
+            --accent: #0d9488;
+            --accent-light: #ccfbf1;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --surface: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+        }
+
+        body.dark-mode {
+            --bg: #0f172a;
+            --fg: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #2dd4bf;
+            --accent-light: #134e4a;
+            --card: #1e293b;
+            --border: #334155;
+            --surface: #1e293b;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        }
+
+        /* === 2. GLOBAL TYPOGRAPHY & TRANSITIONS === */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Cairo', 'Noto Sans Arabic', sans-serif;
+            background-color: var(--bg);
+            color: var(--fg);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            margin: 0;
+            padding-bottom: 80px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        h1, h2, h3 { font-family: 'Cairo', 'Noto Sans Arabic', sans-serif; }
+        .font-serif { font-family: 'Crimson Pro', serif; }
         
-        /* Vertical Text for Matrix Chart Headers */
-        .vertical-text {
-            writing-mode: vertical-lr;
-            transform: rotate(180deg);
-            height: 180px; 
-            white-space: nowrap;
-            text-align: left;
-            padding: 10px 4px;
+        /* Hide Scrollbars */
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* === 3. UI COMPONENTS === */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        .card-header {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            padding: 0 1.25rem;
+            background: var(--surface);
+            border-top: 1px solid transparent;
+        }
+        .card-body.expanded {
+            max-height: 2000px;
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .filter-pill {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
             font-size: 0.85rem;
-            font-weight: bold;
+            font-weight: 600;
+            background: var(--surface);
+            color: var(--muted);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .filter-pill.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.3);
         }
 
-        /* Matrix Table Sticky First Column */
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--fg);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+        }
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        /* Autocomplete */
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; right: 0; 
+            background: var(--card); border: 1px solid var(--border); border-top: none;
+            z-index: 50; max-height: 250px; overflow-y: auto; border-radius: 0 0 0.75rem 0.75rem;
+            box-shadow: var(--shadow-lg);
+        }
+        .autocomplete-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.2s; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover { background: var(--accent-light); }
+
+        /* Matrix Chart Specifics */
+        .matrix-wrapper { overflow-x: auto; border-radius: 1rem; border: 1px solid var(--border); }
+        .matrix-table { border-collapse: collapse; min-width: 100%; }
+        .matrix-table th, .matrix-table td { border: 1px solid var(--border); padding: 8px 4px; text-align: center; font-size: 0.85rem; }
         .matrix-table th:first-child, .matrix-table td:first-child {
-            position: sticky;
-            right: 0; /* RTL sticky side */
-            z-index: 10;
-            background-color: white;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            position: sticky; right: 0; z-index: 10; background: var(--card);
+            box-shadow: -4px 0 8px rgba(0,0,0,0.05); min-width: 120px; text-align: right; padding-right: 10px;
+        }
+        .vertical-text {
+            writing-mode: vertical-lr; transform: rotate(180deg);
+            height: 180px; white-space: nowrap; display: inline-block; font-weight: 600;
         }
 
-        /* Print Layout for A4 Invoice */
+        /* === 4. PRINT LAYOUT === */
         @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
             body * { visibility: hidden; }
             #print-area, #print-area * { visibility: visible; }
-            #print-area { 
-                position: absolute; 
-                right: 0; top: 0; 
-                width: 100%; 
-                padding: 20px;
-                margin: 0;
-                box-shadow: none !important;
-                background: white;
+            #print-area {
+                position: absolute; left: 0; top: 0; width: 100%; padding: 15mm;
+                font-family: 'Cairo', 'Noto Sans Arabic', serif !important;
             }
             .print-table { width: 100%; border-collapse: collapse; }
-            .print-table th, .print-table td { 
-                border: 1px solid black !important; 
-                padding: 8px 4px; 
-                font-size: 12px; 
-                text-align: center; 
-            }
-            .print-table th { background-color: #f0f0f0 !important; }
-            .print-header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; line-height: 1.8;}
-            .print-signatures { display: flex; justify-content: space-between; margin-top: 60px; font-size: 14px; font-weight: bold;}
-        }
-
-        /* Custom Autocomplete Dropdown */
-        .autocomplete-list {
-            position: absolute; top: 100%; left: 0; right: 0; background: white;
-            border: 1px solid #cbd5e1; border-top: none; z-index: 50; max-height: 250px; overflow-y: auto;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
-        .autocomplete-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
-        .autocomplete-item:hover { background-color: #f0fdfa; }
-
-        /* Modal Overlay */
-        .modal-overlay {
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(2px);
+            .print-table th, .print-table td { border: 1px solid #000 !important; padding: 6px 4px; font-size: 11px; text-align: center; }
+            .print-header { text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 15px; line-height: 1.8; }
+            .print-signatures { display: flex; justify-content: space-between; margin-top: 50px; font-size: 14px; font-weight: bold; }
+            .print-matrix { font-size: 8px; }
+            .print-matrix th, .print-matrix td { padding: 2px !important; }
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 pb-20 min-h-screen">
+<body>
 
-    <!-- Top Header -->
-    <header class="bg-primary text-white p-4 shadow-lg sticky top-0 z-40 flex items-center justify-between">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 backdrop-blur-lg bg-[var(--bg)]/80 border-b border-[var(--border)] px-4 py-3 flex justify-between items-center">
         <div>
-            <h1 class="text-lg font-bold">الصيدلة السريرية</h1>
-            <p class="text-xs text-teal-200">الجناح الخاص - مستشفى بغداد التعليمي</p>
+            <h1 class="text-lg font-bold" style="color: var(--fg)">الجناح الخاص</h1>
+            <p class="text-xs" style="color: var(--muted)">الصيدلة السريرية</p>
         </div>
-        <i class="fas fa-hospital text-2xl text-teal-200"></i>
+        <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--surface)] border border-[var(--border)] transition-transform active:scale-90">
+            <i id="theme-icon" class="fas fa-moon text-lg" style="color: var(--accent)"></i>
+        </button>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="p-4 max-w-4xl mx-auto">
+    <main class="max-w-4xl mx-auto p-4">
         
-        <!-- VIEW 1: ADMISSIONS -->
+        <!-- VIEW: ADMISSIONS -->
         <div id="view-admissions" class="view-section">
-            <h2 class="text-xl font-bold text-dark mb-4">المرضى الراقدين</h2>
-            <div id="patients-list" class="space-y-3">
-                <!-- Populated by JS -->
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">المرضى الراقدين</h2>
+                <span id="patient-count" class="text-xs font-bold px-2 py-1 rounded-full" style="background: var(--accent-light); color: var(--accent)">0</span>
             </div>
-            <div id="no-patients-msg" class="hidden text-center text-gray-500 mt-10">
-                <i class="fas fa-user-plus text-4xl mb-3"></i>
-                <p>لا يوجد مرضى حالياً</p>
+            
+            <!-- Filter Pills -->
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                <button class="filter-pill active" data-filter="all" onclick="setFilter('all', this)">الكل</button>
+                <button class="filter-pill" data-filter="male" onclick="setFilter('male', this)">ذكور</button>
+                <button class="filter-pill" data-filter="female" onclick="setFilter('female', this)">إناث</button>
+                <button class="filter-pill" data-filter="room-1" onclick="setFilter('room-1', this)">غرفة 1</button>
+                <button class="filter-pill" data-filter="room-2" onclick="setFilter('room-2', this)">غرفة 2</button>
+                <button class="filter-pill" data-filter="room-3" onclick="setFilter('room-3', this)">غرفة 3</button>
+            </div>
+
+            <div id="patients-container"></div>
+            <div id="no-patients" class="hidden text-center py-16" style="color: var(--muted)">
+                <i class="fas fa-user-slash text-4xl mb-4 block opacity-50"></i>
+                <p class="font-semibold">لا يوجد مرضى مسجلين</p>
             </div>
         </div>
 
-        <!-- VIEW 2: DAILY LOG -->
+        <!-- VIEW: DAILY LOG -->
         <div id="view-log" class="view-section hidden">
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 space-y-4">
+            <h2 class="text-xl font-bold mb-4">السجل اليومي</h2>
+            <div class="card p-4 space-y-4">
                 <div>
-                    <label class="block text-sm font-bold mb-1">اختر المريض</label>
-                    <select id="log-patient-select" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
-                        <option value="">-- اختر --</option>
-                    </select>
+                    <label class="block text-sm font-semibold mb-1">المريض</label>
+                    <select id="log-patient" class="input-field"></select>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1">التاريخ</label>
-                    <input type="date" id="log-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
+                <div class="flex gap-3">
+                    <div class="flex-1">
+                        <label class="block text-sm font-semibold mb-1">التاريخ</label>
+                        <input type="date" id="log-date" class="input-field">
+                    </div>
+                    <div class="w-24">
+                        <label class="block text-sm font-semibold mb-1">الكمية</label>
+                        <input type="number" id="log-qty" inputmode="decimal" class="input-field text-center" value="1" min="1">
+                    </div>
                 </div>
-                
-                <!-- Autocomplete Section -->
                 <div class="relative">
-                    <label class="block text-sm font-bold mb-1">اسم الدواء / المادة</label>
-                    <input type="text" id="med-search-input" placeholder="ابحث عن دواء..." autocomplete="off" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <div id="med-dropdown" class="autocomplete-list hidden rounded-b-lg"></div>
+                    <label class="block text-sm font-semibold mb-1">اسم الدواء / المادة</label>
+                    <input type="text" id="log-med-search" class="input-field" placeholder="ابحث هنا..." autocomplete="off">
+                    <div id="med-dropdown" class="autocomplete-list hidden"></div>
                 </div>
-
-                <div>
-                    <label class="block text-sm font-bold mb-1">الكمية</label>
-                    <input type="number" id="med-quantity" min="1" value="1" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                </div>
-
-                <button onclick="addLogItem()" class="w-full bg-secondary text-white font-bold py-3 rounded-lg hover:bg-teal-700 transition">
-                    <i class="fas fa-plus ml-2"></i> أضافة للقائمة اليومية
+                <button onclick="addToTempLog()" class="w-full py-3 rounded-xl font-bold text-white transition-all active:scale-95" style="background: var(--accent)">
+                    <i class="fas fa-plus ml-2"></i>أضافة للقائمة
                 </button>
             </div>
 
-            <!-- Temporary Log List -->
-            <div class="bg-white p-4 rounded-xl shadow-sm">
-                <h3 class="font-bold mb-3 border-b pb-2">قائمة المصروفة لهذا المريض اليوم:</h3>
-                <div id="temp-log-list" class="space-y-2 max-h-60 overflow-y-auto">
-                    <p class="text-gray-400 text-sm text-center py-4">القائمة فارغة</p>
+            <div class="card mt-4">
+                <div class="p-4 border-b" style="border-color: var(--border)">
+                    <h3 class="font-bold">الأدوية المضافة اليوم</h3>
                 </div>
-                <button id="btn-save-log" onclick="saveDailyLog()" disabled class="w-full mt-4 bg-primary text-white font-bold py-3 rounded-lg hover:bg-teal-900 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-cloud-upload-alt ml-2"></i> حفظ في السجل (فيربيس)
-                </button>
+                <div id="temp-log-container" class="p-4">
+                    <p class="text-sm text-center" style="color: var(--muted)">القائمة فارغة</p>
+                </div>
+                <div class="p-4 border-t" style="border-color: var(--border)">
+                    <button id="btn-save-log" onclick="saveLog()" disabled class="w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 active:scale-95" style="background: var(--fg)">
+                        <i class="fas fa-cloud-arrow-up ml-2"></i>حفظ السجل النهائي
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- VIEW 3: DAILY CHART MATRIX -->
+        <!-- VIEW: MATRIX CHART -->
         <div id="view-chart" class="view-section hidden">
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-4">
-                <label class="block text-sm font-bold mb-1">اختر تاريخ اليوم</label>
-                <input type="date" id="chart-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50" onchange="generateMatrix()">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">الخارطة اليومية</h2>
+                <button onclick="printMatrix()" class="text-sm font-semibold px-3 py-1.5 rounded-lg border flex items-center gap-2 active:scale-95" style="border-color: var(--border); color: var(--muted)">
+                    <i class="fas fa-print"></i> طباعة
+                </button>
             </div>
-            <div class="matrix-container bg-white rounded-xl shadow-sm overflow-hidden">
-                <table id="matrix-table" class="matrix-table w-max min-w-full">
-                    <!-- Populated by JS -->
-                </table>
-                <div id="no-chart-data" class="hidden text-center text-gray-500 p-10">
-                    <i class="fas fa-table text-4xl mb-3"></i>
-                    <p>لا توجد سجلات لهذا اليوم</p>
-                </div>
+            <div class="mb-4">
+                <input type="date" id="chart-date" class="input-field" onchange="renderMatrix()">
             </div>
+            <div id="matrix-container" class="matrix-wrapper bg-[var(--card)]"></div>
         </div>
 
-        <!-- VIEW 4: DISCHARGE & BILLING -->
+        <!-- VIEW: DISCHARGE -->
         <div id="view-discharge" class="view-section hidden">
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 space-y-4">
+            <h2 class="text-xl font-bold mb-4">التصريف والفاتورة</h2>
+            <div class="card p-4 space-y-4">
                 <div>
-                    <label class="block text-sm font-bold mb-1">اختر المريض للتصريف</label>
-                    <select id="dis-patient-select" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
-                        <option value="">-- اختر --</option>
-                    </select>
+                    <label class="block text-sm font-semibold mb-1">اختر المريض</label>
+                    <select id="dis-patient" class="input-field"></select>
                 </div>
                 <div>
-                    <label class="block text-sm font-bold mb-1">تاريخ التصريف</label>
-                    <input type="date" id="dis-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50">
+                    <label class="block text-sm font-semibold mb-1">تاريخ التصريف</label>
+                    <input type="date" id="dis-date" class="input-field">
                 </div>
-                <button onclick="generateInvoice()" class="w-full bg-accent text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition">
-                    <i class="fas fa-file-invoice-dollar ml-2"></i> توليد الفاتورة والطباعة
+                <button onclick="generateDischargeInvoice()" class="w-full py-3 rounded-xl font-bold text-white transition-all active:scale-95" style="background: #ea580c">
+                    <i class="fas fa-file-invoice-dollar ml-2"></i>توليد الفاتورة الرسمية
                 </button>
             </div>
-            <div id="dis-preview" class="bg-white p-4 rounded-xl shadow-sm hidden">
-                <button onclick="printInvoice()" class="w-full bg-dark text-white font-bold py-3 rounded-lg mb-4 hover:bg-gray-800 transition">
-                    <i class="fas fa-print ml-2"></i> طباعة A4
+            <div id="discharge-preview" class="card mt-4 p-4 hidden">
+                <button onclick="printInvoice()" class="w-full py-3 rounded-xl font-bold text-white transition-all active:scale-95 mb-4" style="background: var(--fg)">
+                    <i class="fas fa-print ml-2"></i>طباعة A4 الرسمية
                 </button>
-                <div id="invoice-container" class="border p-4 text-sm" style="font-family: 'Traditional Arabic', serif;">
-                    <!-- Invoice HTML generated here -->
-                </div>
+                <div id="invoice-html" class="border rounded-lg p-4 text-sm" style="border-color: var(--border)"></div>
             </div>
         </div>
-
     </main>
 
-    <!-- Hidden Print Area (Used by @media print) -->
-    <div id="print-area" class="hidden">
-        <!-- Invoice content cloned here right before printing -->
-    </div>
-
-    <!-- FAB - Add New Patient -->
-    <button onclick="openModal('modal-add-patient')" id="fab-add" class="fixed bottom-24 left-4 bg-accent text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl z-50 hover:bg-orange-600 transition-transform active:scale-95">
+    <!-- FAB -->
+    <button onclick="openModal('modal-patient')" id="fab" class="fixed bottom-24 left-5 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white text-2xl z-50 transition-all active:scale-90 hover:shadow-xl" style="background: var(--accent)">
         <i class="fas fa-plus"></i>
     </button>
 
-    <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-2 z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <button onclick="switchView('admissions')" class="nav-btn flex flex-col items-center text-primary" data-view="admissions">
-            <i class="fas fa-bed text-xl mb-1"></i>
-            <span class="text-xs font-bold">المرضى</span>
+    <!-- Bottom Nav -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-[var(--card)]/90 backdrop-blur-lg border-t flex justify-around py-2" style="border-color: var(--border)">
+        <button class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-colors active" data-view="admissions" onclick="switchView('admissions')">
+            <i class="fas fa-bed text-lg"></i>
+            <span class="text-[10px] font-semibold">المرضى</span>
         </button>
-        <button onclick="switchView('log')" class="nav-btn flex flex-col items-center text-gray-400" data-view="log">
-            <i class="fas fa-pills text-xl mb-1"></i>
-            <span class="text-xs font-bold">السجل اليومي</span>
+        <button class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-colors" data-view="log" onclick="switchView('log')">
+            <i class="fas fa-prescription-bottle-medical text-lg"></i>
+            <span class="text-[10px] font-semibold">السجل</span>
         </button>
-        <button onclick="switchView('chart')" class="nav-btn flex flex-col items-center text-gray-400" data-view="chart">
-            <i class="fas fa-th text-xl mb-1"></i>
-            <span class="text-xs font-bold">الخارطة</span>
+        <button class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-colors" data-view="chart" onclick="switchView('chart')">
+            <i class="fas fa-table-cells-large text-lg"></i>
+            <span class="text-[10px] font-semibold">الخارطة</span>
         </button>
-        <button onclick="switchView('discharge')" class="nav-btn flex flex-col items-center text-gray-400" data-view="discharge">
-            <i class="fas fa-file-invoice text-xl mb-1"></i>
-            <span class="text-xs font-bold">التصريف</span>
+        <button class="nav-btn flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-colors" data-view="discharge" onclick="switchView('discharge')">
+            <i class="fas fa-file-invoice text-lg"></i>
+            <span class="text-[10px] font-semibold">التصريف</span>
         </button>
     </nav>
 
-    <!-- MODAL: Add Patient -->
-    <div id="modal-add-patient" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl transform transition-all">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-dark">دخول مريض جديد</h3>
-                <button onclick="closeModal('modal-add-patient')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-2xl"></i></button>
-            </div>
+    <!-- Modal: Add Patient -->
+    <div id="modal-patient" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4" style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);" onclick="if(event.target===this)closeModal('modal-patient')">
+        <div class="bg-[var(--card)] w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl p-6 shadow-2xl transform transition-all">
+            <div class="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mb-6 sm:hidden"></div>
+            <h3 class="text-xl font-bold mb-6">دخول مريض جديد</h3>
             <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-bold mb-1">اسم المريض</label>
-                    <input type="text" id="p-name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary" placeholder="أحمد محمد">
+                <input type="text" id="p-name" class="input-field" placeholder="اسم المريض">
+                <div class="flex gap-3">
+                    <input type="text" id="p-file" class="input-field flex-1" placeholder="رقم الطبّلة">
+                    <input type="text" id="p-room" class="input-field w-24" placeholder="الغرفة">
                 </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1">رقم الطبّلة</label>
-                    <input type="text" id="p-file" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary" placeholder="12345">
-                </div>
-                <div class="flex gap-4">
-                    <div class="flex-1">
-                        <label class="block text-sm font-bold mb-1">الردهة</label>
-                        <select id="p-ward" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50">
-                            <option value="male">ذكور</option>
-                            <option value="female">إناث</option>
-                        </select>
-                    </div>
-                    <div class="flex-1">
-                        <label class="block text-sm font-bold mb-1">الغرفة</label>
-                        <input type="text" id="p-room" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary" placeholder="1">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1">تاريخ الدخول</label>
-                    <input type="date" id="p-date" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50">
-                </div>
-                <button onclick="admitPatient()" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-teal-900 transition mt-2">
-                    تسجيل الدخول
-                </button>
+                <select id="p-ward" class="input-field">
+                    <option value="male">ذكور</option>
+                    <option value="female">إناث</option>
+                </select>
+                <input type="date" id="p-date" class="input-field">
+                <button onclick="admitPatient()" class="w-full py-3 rounded-xl font-bold text-white transition-all active:scale-95" style="background: var(--accent)">حفظ المريض</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-dark text-white px-6 py-3 rounded-lg shadow-lg z-[60] transition-opacity duration-300 opacity-0 pointer-events-none">
-        تمت العملية بنجاح
-    </div>
+    <!-- Print Overlay Area -->
+    <div id="print-area" class="hidden"></div>
 
 <script>
-    // --- 1. FIREBASE INITIALIZATION ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCn9iqxCcTnE36s0YS08nyMLQXfbUbJpOA",
-        authDomain: "private-9140c.firebaseapp.com",
-        projectId: "private-9140c",
-        storageBucket: "private-9140c.firebasestorage.app",
-        messagingSenderId: "918205705807",
-        appId: "1:918205705807:web:a3fbc75f210c025902c43a",
-        measurementId: "G-YKT5S2NT2B"
+    // === STATE MANAGEMENT ===
+    const state = {
+        patients: [],
+        dailyLogs: [],
+        medicationsDB: [],
+        tempLogItems: [],
+        currentView: 'admissions',
+        activeFilter: 'all',
+        matrixDate: new Date().toISOString().split('T')[0]
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    // --- 2. GLOBAL STATE & DATABASE ---
-    let medicationsDB = []; // Will hold the parsed Google Sheet data
-    let activePatients = []; // Real-time synced list
-    let tempLogItems = []; // Holds items before final daily log save
+    // === DOM CACHE ===
+    const DOM = {
+        patientsContainer: () => document.getElementById('patients-container'),
+        tempLogContainer: () => document.getElementById('temp-log-container'),
+        matrixContainer: () => document.getElementById('matrix-container'),
+        logPatient: () => document.getElementById('log-patient'),
+        disPatient: () => document.getElementById('dis-patient'),
+        medDropdown: () => document.getElementById('med-dropdown')
+    };
 
-    // Mock Data Fallback (If Google Sheet fails)
-    const mockMedications = [
-        { name: "أموكسيسيلين 500mg كبسولة", price: 250, source: "كيماديا" },
-        { name: "سيبروفلوكساسين 400mg حقنة", price: 1500, source: "شراء" },
-        { name: "محلول ملحي 0.9% 500مل", price: 1000, source: "شراء" },
-        { name: "محلول جلوكوز 5% 500مل", price: 1200, source: "كيماديا" },
-        { name: "باراسيتامول 500mg قرص", price: 100, source: "كيماديا" },
-        { name: "دكساميثازون 8mg حقنة", price: 800, source: "شراء" },
-        { name: "أوميبرازول 40mg كبسولة", price: 350, source: "كيماديا" },
-        { name: "اتروبين 0.1% حقنة", price: 500, source: "شراء" },
-        { name: "قفازات طبية (علبة)", price: 2500, source: "شراء" },
-        { name: "محاقن 10مل", price: 300, source: "كيماديا" }
+    // === GOOGLE SHEETS & DATA INIT ===
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0";
+    const mockMeds = [
+        {name: "أموكسيسيلين 500mg كبسولة", price: 250, source: "كيماديا"},
+        {name: "سيبروفلوكساسين 400mg حقنة", price: 1500, source: "شراء"},
+        {name: "محلول ملحي 0.9% 500مل", price: 1000, source: "شراء"},
+        {name: "محلول جلوكوز 5% 500مل", price: 1200, source: "كيماديا"},
+        {name: "باراسيتامول 500mg قرص", price: 100, source: "كيماديا"},
+        {name: "دكساميثازون 8mg حقنة", price: 800, source: "شراء"},
+        {name: "أوميبرازول 40mg كبسولة", price: 350, source: "كيماديا"},
+        {name: "اتروبين 0.1% حقنة", price: 500, source: "شراء"},
+        {name: "قفازات طبية (علبة)", price: 2500, source: "شراء"},
+        {name: "محاقن 10مل", price: 300, source: "كيماديا"},
+        {name: "فيتامين سي 500mg", price: 150, source: "كيماديا"},
+        {name: "ترامادول 100mg حقنة", price: 2000, source: "شراء"},
+        {name: "هيبارين 5000 وحدة", price: 3500, source: "شراء"},
+        {name: "لوراتادين 10mg قرص", price: 200, source: "كيماديا"},
+        {name: "شاش طبي", price: 750, source: "شراء"}
     ];
 
-    // --- 3. GOOGLE SHEETS FETCHING ---
-    // REPLACE THIS URL WITH YOUR ACTUAL GOOGLE SHEET CSV EXPORT LINK
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0";
+    async function initApp() {
+        loadState();
+        await fetchMedications();
+        setupEventListeners();
+        renderApp();
+    }
 
     async function fetchMedications() {
         try {
-            const response = await fetch(GOOGLE_SHEET_CSV_URL);
-            if (!response.ok) throw new Error("Network response was not ok");
-            const csvText = await response.text();
-            medicationsDB = parseCSV(csvText);
-            if(medicationsDB.length === 0) throw new Error("Parsed 0 items");
-            console.log("Successfully loaded from Google Sheet");
-        } catch (error) {
-            console.warn("Failed to load Google Sheet, using Mock Data. Error:", error);
-            medicationsDB = mockMedications;
+            const res = await fetch(SHEET_CSV_URL);
+            if(!res.ok) throw new Error("Failed to fetch");
+            const csv = await res.text();
+            state.medicationsDB = parseCSV(csv);
+            if(state.medicationsDB.length === 0) throw new Error("Parsed 0");
+        } catch (err) {
+            console.warn("Using Mock Medications:", err.message);
+            state.medicationsDB = mockMeds;
         }
     }
 
-    // Lightweight CSV Parser handling Arabic and quotes
     function parseCSV(csv) {
-        const lines = csv.split('\n').filter(line => line.trim() !== '');
+        const lines = csv.split('\n').filter(l => l.trim());
         const result = [];
-        // Skip header row if exists
-        for (let i = 1; i < lines.length; i++) {
-            // Regex to split by comma, but ignore commas inside double quotes
+        for(let i=1; i<lines.length; i++) {
             const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            if (cols && cols.length >= 2) {
-                // Clean quotes and spaces
-                const name = cols[0].replace(/^"|"$/g, '').trim();
-                const price = parseFloat(cols[1].replace(/[,|\s]/g, '')) || 0;
-                const source = (cols[2] || "كيماديا").replace(/^"|"$/g, '').trim();
-                if (name) result.push({ name, price, source });
+            if(cols && cols.length >= 2) {
+                result.push({
+                    name: cols[0].replace(/^"|"$/g, '').trim(),
+                    price: parseFloat(cols[1].replace(/,/g, '')) || 0,
+                    source: (cols[2] || "كيماديا").replace(/^"|"$/g, '').trim()
+                });
             }
         }
         return result;
     }
 
-    // --- 4. REAL-TIME FIRESTORE LISTENERS ---
-    function initFirestoreListeners() {
-        // PHASE 2: Add .where("ward", "==", currentUser.ward) here
-        
-        db.collection('patients').where("status", "==", "active")
-            .onSnapshot((snapshot) => {
-                activePatients = [];
-                snapshot.forEach(doc => {
-                    activePatients.push({ id: doc.id, ...doc.data() });
-                });
-                renderPatientsList();
-                updatePatientDropdowns();
-            }, (error) => {
-                console.error("Error listening to patients: ", error);
-                showToast("خطأ في تحديث قائمة المرضى", "error");
-            });
+    // === LOCAL STORAGE PERSISTENCE ===
+    function saveState() {
+        localStorage.setItem('pharmacy_app_state', JSON.stringify({
+            patients: state.patients,
+            dailyLogs: state.dailyLogs
+        }));
     }
 
-    // --- 5. UI NAVIGATION & UTILITIES ---
+    function loadState() {
+        const saved = JSON.parse(localStorage.getItem('pharmacy_app_state') || '{}');
+        state.patients = saved.patients || [];
+        state.dailyLogs = saved.dailyLogs || [];
+        document.getElementById('p-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('log-date').value = state.matrixDate;
+        document.getElementById('chart-date').value = state.matrixDate;
+        document.getElementById('dis-date').value = state.matrixDate;
+        
+        if(localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-icon').classList.replace('fa-moon', 'fa-sun');
+        }
+    }
+
+    // === UI NAVIGATION & THEME ===
     function switchView(viewName) {
+        state.currentView = viewName;
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
         document.getElementById(`view-${viewName}`).classList.remove('hidden');
         
         document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.remove('text-primary');
-            btn.classList.add('text-gray-400');
+            btn.classList.remove('active');
+            btn.style.color = 'var(--muted)';
+            btn.style.background = 'transparent';
         });
-        document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.remove('text-gray-400');
-        document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add('text-primary');
-
-        // Show FAB only on admissions view
-        document.getElementById('fab-add').classList.toggle('hidden', viewName !== 'admissions');
+        const activeBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
+        activeBtn.classList.add('active');
+        activeBtn.style.color = 'var(--accent)';
+        activeBtn.style.background = 'var(--accent-light)';
         
-        // Set default dates
-        if (viewName === 'log' || viewName === 'chart') {
-            const today = new Date().toISOString().split('T')[0];
-            if(viewName === 'log') document.getElementById('log-date').value = today;
-            if(viewName === 'chart' && !document.getElementById('chart-date').value) {
-                document.getElementById('chart-date').value = today;
-                generateMatrix();
-            }
-        }
+        document.getElementById('fab').classList.toggle('hidden', viewName !== 'admissions');
+        if(viewName === 'log' || viewName === 'discharge') populatePatientDropdowns();
+        if(viewName === 'chart') renderMatrix();
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', isDark);
+        const icon = document.getElementById('theme-icon');
+        icon.classList.replace(isDark ? 'fa-moon' : 'fa-sun', isDark ? 'fa-sun' : 'fa-moon');
     }
 
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    function showToast(message, type = "success") {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-[60] transition-opacity duration-300 opacity-100 pointer-events-none ${type === 'error' ? 'bg-red-600' : 'bg-dark'} text-white`;
-        setTimeout(() => { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 2500);
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl z-[60] text-white font-semibold text-sm';
+        t.style.background = 'var(--fg)';
+        t.innerText = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2500);
     }
 
-    function formatIQD(amount) {
-        if (!amount && amount !== 0) return '';
-        return new Intl.NumberFormat('en-US').format(amount) + " د.ع";
+    // === SYNCHRONOUS RENDERING ===
+    function renderApp() {
+        renderPatients();
+        renderTempLog();
     }
 
-    function updatePatientDropdowns() {
-        const options = activePatients.map(p => 
-            `<option value="${p.id}">${p.name} - ${p.ward === 'male' ? 'ذكور' : 'إناث'} - غرفة ${p.roomNumber}</option>`
-        ).join('');
+    function renderPatients() {
+        const container = DOM.patientsContainer();
+        const noMsg = document.getElementById('no-patients');
+        document.getElementById('patient-count').innerText = state.patients.length;
         
-        document.getElementById('log-patient-select').innerHTML = `<option value="">-- اختر --</option>${options}`;
-        document.getElementById('dis-patient-select').innerHTML = `<option value="">-- اختر --</option>${options}`;
-    }
-
-    // --- 6. PATIENTS ADMISSION LOGIC ---
-    function admitPatient() {
-        const name = document.getElementById('p-name').value.trim();
-        const fileNumber = document.getElementById('p-file').value.trim();
-        const ward = document.getElementById('p-ward').value;
-        const roomNumber = document.getElementById('p-room').value.trim();
-        const admissionDate = document.getElementById('p-date').value;
-
-        if (!name || !fileNumber || !roomNumber || !admissionDate) {
-            showToast("يرجى ملء جميع الحقول", "error");
-            return;
+        let filtered = [...state.patients];
+        if(state.activeFilter === 'male') filtered = filtered.filter(p => p.ward === 'male');
+        else if(state.activeFilter === 'female') filtered = filtered.filter(p => p.ward === 'female');
+        else if(state.activeFilter.startsWith('room-')) {
+            const room = state.activeFilter.split('-')[1];
+            filtered = filtered.filter(p => p.roomNumber === room);
         }
 
-        db.collection('patients').add({
-            name, fileNumber, ward, roomNumber, admissionDate,
-            status: 'active',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
-            closeModal('modal-add-patient');
-            document.getElementById('p-name').value = '';
-            document.getElementById('p-file').value = '';
-            document.getElementById('p-room').value = '';
-            showToast("تم تسجيل المريض بنجاح");
-        }).catch((err) => {
-            console.error(err);
-            showToast("حدث خطأ أثناء الحفظ", "error");
-        });
-    }
-
-    function renderPatientsList() {
-        const container = document.getElementById('patients-list');
-        const noMsg = document.getElementById('no-patients-msg');
-        
-        if (activePatients.length === 0) {
+        if(filtered.length === 0) {
             container.innerHTML = '';
             noMsg.classList.remove('hidden');
             return;
         }
-        
         noMsg.classList.add('hidden');
-        container.innerHTML = activePatients.map(p => `
-            <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border-r-4 ${p.ward === 'male' ? 'border-blue-500' : 'border-pink-500'}">
-                <div>
-                    <h3 class="font-bold text-dark">${p.name}</h3>
-                    <p class="text-sm text-gray-500">طبّلة: ${p.fileNumber} | غرفة: ${p.roomNumber}</p>
-                    <p class="text-xs text-gray-400 mt-1">دخل بتاريخ: ${p.admissionDate}</p>
+
+        container.innerHTML = filtered.map(p => `
+            <div class="card" data-id="${p.id}">
+                <div class="card-header" onclick="toggleAccordion(this)">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: ${p.ward === 'male' ? '#3b82f6' : '#ec4899'}">
+                            ${p.name.charAt(0)}
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">${p.name}</h3>
+                            <p class="text-xs" style="color: var(--muted)">طبّلة: ${p.fileNumber} | غرفة: ${p.roomNumber}</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--muted)"></i>
                 </div>
-                <div class="text-left">
-                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded block mb-2">${p.ward === 'male' ? 'ذكور' : 'إناث'}</span>
+                <div class="card-body">
+                    <div class="flex justify-between text-sm mb-3 pb-3 border-b" style="border-color: var(--border)">
+                        <span style="color: var(--muted)">تاريخ الدخول:</span>
+                        <span class="font-semibold">${p.admissionDate}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="event.stopPropagation(); quickDischarge('${p.id}')" class="flex-1 py-2 text-xs font-bold rounded-lg border transition-colors" style="border-color: #ef4444; color: #ef4444">
+                            <i class="fas fa-right-from-bracket ml-1"></i> تصريف
+                        </button>
+                        <button onclick="event.stopPropagation(); deletePatient('${p.id}')" class="py-2 px-4 text-xs font-bold rounded-lg border transition-colors" style="border-color: var(--border); color: var(--muted)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('');
     }
 
-    // --- 7. DAILY LOGIC LOGIC ---
-    // Autocomplete Logic
-    const medInput = document.getElementById('med-search-input');
-    const medDropdown = document.getElementById('med-dropdown');
-
-    medInput.addEventListener('input', function() {
-        const val = this.value.trim();
-        if (val.length < 2) { medDropdown.classList.add('hidden'); return; }
+    function toggleAccordion(header) {
+        const body = header.nextElementSibling;
+        const icon = header.querySelector('i');
+        const isExpanded = body.classList.contains('expanded');
         
-        const filtered = medicationsDB.filter(m => m.name.includes(val)).slice(0, 10);
-        if (filtered.length === 0) { medDropdown.classList.add('hidden'); return; }
+        // Close all others
+        document.querySelectorAll('.card-body.expanded').forEach(b => {
+            b.classList.remove('expanded');
+            b.previousElementSibling.querySelector('i').style.transform = 'rotate(0deg)';
+        });
 
-        medDropdown.innerHTML = filtered.map(m => `
-            <div class="autocomplete-item flex justify-between" onclick="selectMed('${m.name}')">
-                <span>${m.name}</span>
-                <span class="text-xs text-gray-400">${m.source}</span>
-            </div>
-        `).join('');
-        medDropdown.classList.remove('hidden');
-    });
-
-    // Close dropdown if clicked outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('#med-search-input') && !e.target.closest('#med-dropdown')) {
-            medDropdown.classList.add('hidden');
+        if (!isExpanded) {
+            body.classList.add('expanded');
+            icon.style.transform = 'rotate(180deg)';
         }
-    });
-
-    function selectMed(name) {
-        medInput.value = name;
-        medDropdown.classList.add('hidden');
-        document.getElementById('med-quantity').focus();
     }
 
-    function addLogItem() {
-        const name = medInput.value.trim();
-        const qty = parseInt(document.getElementById('med-quantity').value);
-        const patientId = document.getElementById('log-patient-select').value;
-
-        if (!name || !qty || !patientId) {
-            showToast("اختر المريض والدواء والكمية", "error"); return;
-        }
-
-        // Check if already added, if so, increment quantity
-        const existing = tempLogItems.find(i => i.name === name);
-        if (existing) {
-            existing.quantity += qty;
-        } else {
-            tempLogItems.push({ name, quantity: qty });
-        }
-
-        medInput.value = '';
-        document.getElementById('med-quantity').value = 1;
-        renderTempLog();
-    }
-
-    function removeTempLogItem(index) {
-        tempLogItems.splice(index, 1);
-        renderTempLog();
+    function setFilter(filter, el) {
+        state.activeFilter = filter;
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        renderPatients();
     }
 
     function renderTempLog() {
-        const container = document.getElementById('temp-log-list');
+        const container = DOM.tempLogContainer();
         const btn = document.getElementById('btn-save-log');
         
-        if (tempLogItems.length === 0) {
-            container.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">القائمة فارغة</p>';
+        if(state.tempLogItems.length === 0) {
+            container.innerHTML = `<p class="text-sm text-center" style="color: var(--muted)">القائمة فارغة</p>`;
             btn.disabled = true;
             return;
         }
-
+        
         btn.disabled = false;
-        container.innerHTML = tempLogItems.map((item, i) => `
-            <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
-                <span class="text-sm flex-1">${item.name}</span>
-                <span class="font-bold text-primary mx-2">x${item.quantity}</span>
-                <button onclick="removeTempLogItem(${i})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>
+        container.innerHTML = state.tempLogItems.map((item, i) => `
+            <div class="flex items-center justify-between p-2 rounded-lg mb-2" style="background: var(--surface)">
+                <span class="text-sm flex-1 font-medium">${item.name}</span>
+                <span class="font-bold mx-3 text-sm" style="color: var(--accent)">x${item.quantity}</span>
+                <button onclick="removeTempItem(${i})" class="text-red-500 hover:text-red-700"><i class="fas fa-xmark"></i></button>
             </div>
         `).join('');
     }
 
-    function saveDailyLog() {
-        const patientId = document.getElementById('log-patient-select').value;
-        const date = document.getElementById('log-date').value;
+    // === BUSINESS LOGIC ===
+    function admitPatient() {
+        const name = document.getElementById('p-name').value.trim();
+        const fileNumber = document.getElementById('p-file').value.trim();
+        const roomNumber = document.getElementById('p-room').value.trim();
+        const ward = document.getElementById('p-ward').value;
+        const admissionDate = document.getElementById('p-date').value;
 
-        if (!patientId || !date || tempLogItems.length === 0) {
-            showToast("بيانات ناقصة", "error"); return;
-        }
+        if(!name || !fileNumber || !roomNumber || !admissionDate) return showToast("يرجى ملء جميع الحقول");
 
-        // Save to Firestore
-        db.collection('dailyLogs').add({
-            patientId,
-            date,
-            items: tempLogItems,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
-            tempLogItems = [];
-            renderTempLog();
-            document.getElementById('log-patient-select').value = '';
-            showToast("تم حفظ السجل اليومي بنجاح في فيربيس");
-        }).catch((err) => {
-            console.error(err);
-            showToast("خطأ في الحفظ", "error");
+        state.patients.push({
+            id: 'p_' + Date.now(),
+            name, fileNumber, roomNumber, ward, admissionDate, status: 'active'
         });
+        
+        saveState();
+        renderPatients();
+        closeModal('modal-patient');
+        document.getElementById('p-name').value = '';
+        document.getElementById('p-file').value = '';
+        document.getElementById('p-room').value = '';
+        showToast("تم تسجيل المريض بنجاح");
     }
 
-    // --- 8. DAILY CHART MATRIX ---
-    async function generateMatrix() {
-        const date = document.getElementById('chart-date').value;
-        const table = document.getElementById('matrix-table');
-        const noData = document.getElementById('no-chart-data');
-
-        if (!date) { table.innerHTML = ''; noData.classList.remove('hidden'); return; }
-
-        // PHASE 2: Filter by ward here if needed
-        const snapshot = await db.collection('dailyLogs').where('date', '==', date).get();
-        
-        if (snapshot.empty) {
-            table.innerHTML = '';
-            noData.classList.remove('hidden');
-            return;
+    function deletePatient(id) {
+        if(confirm("هل أنت متأكد من حذف المريض؟")) {
+            state.patients = state.patients.filter(p => p.id !== id);
+            saveState();
+            renderPatients();
         }
-        noData.classList.add('hidden');
+    }
 
-        // Process Data into a matrix structure
-        let matrixData = {}; // { patientId: { patientName, ward, meds: { medName: totalQty } } }
-        let allMedsSet = new Set();
+    function quickDischarge(id) {
+        switchView('discharge');
+        setTimeout(() => {
+            DOM.disPatient().value = id;
+        }, 100);
+    }
 
-        snapshot.forEach(doc => {
-            const log = doc.data();
-            const patient = activePatients.find(p => p.id === log.patientId);
-            if (!patient) return; // Skip if patient discharged/unknown
+    // --- Daily Logging ---
+    function populatePatientDropdowns() {
+        const opts = state.patients.filter(p => p.status === 'active').map(p => 
+            `<option value="${p.id}">${p.name} - ${p.ward === 'male' ? 'ذكور' : 'إناث'} (${p.roomNumber})</option>`
+        ).join('');
+        const def = `<option value="">-- اختر المريض --</option>`;
+        DOM.logPatient().innerHTML = def + opts;
+        DOM.disPatient().innerHTML = def + opts;
+    }
 
-            if (!matrixData[patient.id]) {
-                matrixData[patient.id] = { name: patient.name, ward: patient.ward, meds: {} };
+    function addToTempLog() {
+        const name = document.getElementById('log-med-search').value.trim();
+        const qty = parseInt(document.getElementById('log-qty').value) || 0;
+        
+        if(!name || qty <= 0) return showToast("اختر الدواء وحدد الكمية");
+
+        const existing = state.tempLogItems.find(i => i.name === name);
+        if(existing) existing.quantity += qty;
+        else state.tempLogItems.push({ name, quantity: qty });
+
+        document.getElementById('log-med-search').value = '';
+        document.getElementById('log-qty').value = 1;
+        DOM.medDropdown().classList.add('hidden');
+        renderTempLog();
+    }
+
+    function removeTempItem(i) {
+        state.tempLogItems.splice(i, 1);
+        renderTempLog();
+    }
+
+    function saveLog() {
+        const patientId = DOM.logPatient().value;
+        const date = document.getElementById('log-date').value;
+        if(!patientId || !date || state.tempLogItems.length === 0) return showToast("بيانات ناقصة");
+
+        state.dailyLogs.push({
+            id: 'log_' + Date.now(),
+            patientId, date,
+            items: [...state.tempLogItems]
+        });
+
+        state.tempLogItems = [];
+        saveState();
+        renderTempLog();
+        DOM.logPatient().value = '';
+        showToast("تم حفظ السجل بنجاح");
+    }
+
+    // --- Matrix Chart ---
+    function renderMatrix() {
+        const container = DOM.matrixContainer();
+        state.matrixDate = document.getElementById('chart-date').value;
+        if(!state.matrixDate) return container.innerHTML = '<p class="p-10 text-center" style="color:var(--muted)">حدد تاريخاً</p>';
+
+        const dayLogs = state.dailyLogs.filter(l => l.date === state.matrixDate);
+        const activePatients = state.patients.filter(p => p.status === 'active');
+        
+        // Extract unique meds used today
+        let medsMap = {};
+        dayLogs.forEach(log => log.items.forEach(i => { medsMap[i.name] = true; }));
+        const medColumns = Object.keys(medsMap);
+
+        if(medColumns.length === 0) {
+            return container.innerHTML = `<p class="p-10 text-center" style="color:var(--muted)"><i class="fas fa-chart-simple text-3xl block mb-2 opacity-30"></i>لا توجد سجلات لهذا اليوم</p>`;
+        }
+
+        // Prepare 30 fixed rows
+        let rows = Array.from({length: 30}, (_, i) => ({ num: i + 1, patient: null, meds: {} }));
+        activePatients.forEach((p, idx) => {
+            if(idx < 30) {
+                rows[idx].patient = p;
+                // Populate quantities
+                dayLogs.filter(l => l.patientId === p.id).forEach(log => {
+                    log.items.forEach(item => {
+                        if(!rows[idx].meds[item.name]) rows[idx].meds[item.name] = 0;
+                        rows[idx].meds[item.name] += item.quantity;
+                    });
+                });
             }
-
-            log.items.forEach(item => {
-                allMedsSet.add(item.name);
-                if (!matrixData[patient.id].meds[item.name]) matrixData[patient.id].meds[item.name] = 0;
-                matrixData[patient.id].meds[item.name] += item.quantity;
-            });
         });
 
-        const medsArray = Array.from(allMedsSet);
-        const patientsArray = Object.keys(matrixData);
-
-        // Build Table HTML
-        let html = `<thead><tr class="bg-gray-50">
-                        <th class="p-2 border-b text-right min-w-[120px]">المريض</th>`;
-        
-        medsArray.forEach(med => {
-            html += `<th class="p-0 border-b text-center min-w-[40px]"><div class="vertical-text">${med}</div></th>`;
-        });
-        
+        let html = `<table class="matrix-table"><thead><tr><th>ت / المريض</th>`;
+        medColumns.forEach(m => { html += `<th><div class="vertical-text">${m}</div></th>`; });
         html += `</tr></thead><tbody>`;
 
-        // Totals row array
-        let totals = new Array(medsArray.length).fill(0);
+        let totals = new Array(medColumns.length).fill(0);
 
-        patientsArray.forEach(pId => {
-            const pData = matrixData[pId];
-            html += `<tr class="border-b hover:bg-gray-50">
-                        <td class="p-2 font-medium text-sm">
-                            ${pData.name} <span class="text-xs text-gray-400">(${pData.ward === 'male' ? 'ذ' : 'ث'})</span>
-                        </td>`;
-            
-            medsArray.forEach((med, idx) => {
-                const qty = pData.meds[med] || '';
-                if (qty !== '') totals[idx] += qty;
-                html += `<td class="p-2 text-center font-bold text-primary">${qty}</td>`;
+        rows.forEach(row => {
+            const pName = row.patient ? `${row.patient.name} (${row.patient.ward === 'male' ? 'ذ' : 'ث'}${row.patient.roomNumber})` : '';
+            html += `<tr><td>${row.num}. ${pName}</td>`;
+            medColumns.forEach((med, idx) => {
+                const qty = row.meds[med] || '';
+                if(qty !== '') totals[idx] += qty;
+                html += `<td class="font-bold" style="color: ${qty ? 'var(--accent)' : 'var(--muted)'}">${qty}</td>`;
             });
             html += `</tr>`;
         });
 
-        // Bottom Totals Row
-        html += `<tr class="bg-teal-50 font-black text-dark">
-                    <td class="p-2 border-t-2 border-teal-200">الإجمالي</td>`;
-        totals.forEach(t => {
-            html += `<td class="p-2 text-center border-t-2 border-teal-200">${t > 0 ? t : ''}</td>`;
-        });
-        html += `</tr></tbody>`;
+        // Totals Row
+        html += `<tr style="background: var(--surface); font-weight:900;"><td>الإجمالي</td>`;
+        totals.forEach(t => { html += `<td>${t > 0 ? t : ''}</td>`; });
+        html += `</tr></tbody></table>`;
 
-        table.innerHTML = html;
+        container.innerHTML = html;
     }
 
-    // --- 9. DISCHARGE & INVOICE LOGIC ---
-    async function generateInvoice() {
-        const patientId = document.getElementById('dis-patient-select').value;
+    function printMatrix() {
+        const printArea = document.getElementById('print-area');
+        printArea.innerHTML = `<h2 style="text-align:center; margin-bottom:10px; font-family:'Cairo';">خارطة الأدوية اليومية - ${state.matrixDate}</h2>` + 
+                              DOM.matrixContainer().innerHTML;
+        printArea.querySelector('table')?.classList.add('print-matrix');
+        printArea.classList.remove('hidden');
+        window.print();
+        setTimeout(() => printArea.classList.add('hidden'), 500);
+    }
+
+    // --- Discharge Invoice ---
+    function generateDischargeInvoice() {
+        const patientId = DOM.disPatient().value;
         const dischargeDate = document.getElementById('dis-date').value;
-        const previewDiv = document.getElementById('dis-preview');
-        const invoiceContainer = document.getElementById('invoice-container');
+        const preview = document.getElementById('discharge-preview');
+        const container = document.getElementById('invoice-html');
 
-        if (!patientId || !dischargeDate) {
-            showToast("اختر المريض وتاريخ التصريف", "error"); return;
-        }
+        if(!patientId || !dischargeDate) return showToast("اختر المريض وتاريخ التصريف");
 
-        const patient = activePatients.find(p => p.id === patientId);
-        if (!patient) return;
+        const patient = state.patients.find(p => p.id === patientId);
+        if(!patient) return;
 
-        showToast("جارٍ تجميع البيانات...");
+        const pLogs = state.dailyLogs.filter(l => 
+            l.patientId === patientId && l.date >= patient.admissionDate && l.date <= dischargeDate
+        );
 
-        // Fetch all logs for this patient from admission to discharge
-        const snapshot = await db.collection('dailyLogs')
-            .where('patientId', '==', patientId)
-            .where('date', '>=', patient.admissionDate)
-            .where('date', '<=', dischargeDate)
-            .get();
+        let aggMeds = {};
+        pLogs.forEach(log => log.items.forEach(item => {
+            if(!aggMeds[item.name]) aggMeds[item.name] = 0;
+            aggMeds[item.name] += item.quantity;
+        }));
 
-        // Aggregate items
-        let aggregatedMeds = {};
-        snapshot.forEach(doc => {
-            doc.data().items.forEach(item => {
-                if (!aggregatedMeds[item.name]) aggregatedMeds[item.name] = 0;
-                aggregatedMeds[item.name] += item.quantity;
-            });
-        });
+        const medsArray = Object.entries(aggMeds);
+        if(medsArray.length === 0) return showToast("لا توجد أدوية مسجلة لهذه الفترة");
 
-        const medsArray = Object.entries(aggregatedMeds); // [[name, qty], ...]
-        
-        if (medsArray.length === 0) {
-            showToast("لا توجد أدوية مسجلة لهذه الفترة", "error");
-            previewDiv.classList.add('hidden');
-            return;
-        }
-
-        // Build Official Invoice HTML
-        let invoiceHTML = `
+        let html = `
             <div class="print-header">
                 <p>مستشفى بغداد التعليمي - وحدة الصيدلة السريرية</p>
                 <p>القطاع الخاص للمرضى الراقدين في الجناح الخاص</p>
                 <p>قائمة الأدوية المصروفة من تاريخ: ${patient.admissionDate} لغاية: ${dischargeDate}</p>
             </div>
-            
-            <div class="flex justify-around mb-4 text-base font-bold border-b pb-2">
+            <div style="display:flex; justify-content:space-around; margin-bottom:15px; font-weight:bold; font-size:14px; border-bottom:1px solid #000; padding-bottom:10px;">
                 <div>اسم المريض: ${patient.name}</div>
                 <div>رقم الطبّلة: ${patient.fileNumber}</div>
                 <div>الردهة: ${patient.ward === 'male' ? 'ذكور' : 'إناث'}</div>
             </div>
+            <table class="print-table">
+                <thead><tr>
+                    <th>ت</th><th>اسم المادة</th><th>الكمية المصروفة</th><th>شراء أو كيماديا</th>
+                    <th>سعر المفرد</th><th>المجموع</th><th>فروقات إدارية</th><th>الإجمالي</th>
+                </tr></thead><tbody>`;
 
-            <table class="print-table w-full">
-                <thead>
-                    <tr>
-                        <th>ت</th>
-                        <th>اسم المادة</th>
-                        <th>الكمية المصروفة</th>
-                        <th>شراء أو كيماديا</th>
-                        <th>سعر المفرد</th>
-                        <th>المجموع</th>
-                        <th>فروقات إدارية</th>
-                        <th>الإجمالي</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-        let grandTotalSum = 0;
-
-        medsArray.forEach(([name, qty], index) => {
-            const dbMed = medicationsDB.find(m => m.name === name);
+        medsArray.forEach(([name, qty], i) => {
+            const dbMed = state.medicationsDB.find(m => m.name === name);
             const price = dbMed ? dbMed.price : 0;
             const source = dbMed ? dbMed.source : "";
-            const subtotal = price * qty;
-            
-            // Leave فروقات and Grand Total blank for handwriting as requested
-            invoiceHTML += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td class="text-right pr-2" style="text-align:right!important;">${name}</td>
-                    <td>${qty}</td>
-                    <td>${source}</td>
-                    <td>${price > 0 ? formatIQD(price) : ''}</td>
-                    <td>${subtotal > 0 ? formatIQD(subtotal) : ''}</td>
-                    <td style="height: 30px;"></td> <!-- Blank for handwriting -->
-                    <td style="height: 30px;"></td> <!-- Blank for handwriting -->
-                </tr>`;
+            const sub = price * qty;
+            html += `<tr>
+                <td>${i+1}</td>
+                <td style="text-align:right!important; padding-right:8px;">${name}</td>
+                <td>${qty}</td><td>${source}</td>
+                <td>${price > 0 ? numberFormat(price) + ' د.ع' : ''}</td>
+                <td>${sub > 0 ? numberFormat(sub) + ' د.ع' : ''}</td>
+                <td style="height: 25px; background: #fff;"></td>
+                <td style="height: 25px; background: #fff;"></td>
+            </tr>`;
         });
 
-        invoiceHTML += `
-                </tbody>
-            </table>
-
-            <div class="print-signatures mt-16">
+        html += `</tbody></table>
+            <div class="print-signatures">
                 <div>الصيدلي السريري</div>
                 <div>اسم وتوقيع محاسب الجناح الخاص</div>
                 <div>اسم وتوقيع مدير الجناح الخاص</div>
             </div>`;
 
-        invoiceContainer.innerHTML = invoiceHTML;
-        previewDiv.classList.remove('hidden');
-        previewDiv.scrollIntoView({ behavior: 'smooth' });
+        container.innerHTML = html;
+        preview.classList.remove('hidden');
+        preview.scrollIntoView({ behavior: 'smooth' });
     }
 
     function printInvoice() {
         const printArea = document.getElementById('print-area');
-        printArea.innerHTML = document.getElementById('invoice-container').innerHTML;
+        printArea.innerHTML = document.getElementById('invoice-html').innerHTML;
         printArea.classList.remove('hidden');
         window.print();
-        // Hide print area again after printing dialog closes
-        setTimeout(() => { printArea.classList.add('hidden'); }, 500);
+        setTimeout(() => printArea.classList.add('hidden'), 500);
     }
 
-    // --- 10. INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Set default dates
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('p-date').value = today;
-        document.getElementById('dis-date').value = today;
-        
-        // Load Medications (Google Sheet or Fallback)
-        await fetchMedications();
-        
-        // Start Real-time Listeners
-        initFirestoreListeners();
-        
-        // Initial View
-        switchView('admissions');
-    });
+    // === UTILITIES ===
+    function numberFormat(num) {
+        return new Intl.NumberFormat('en-US').format(num);
+    }
+
+    function setupEventListeners() {
+        // Autocomplete Logic
+        const medInput = document.getElementById('log-med-search');
+        medInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            if(val.length < 2) return DOM.medDropdown().classList.add('hidden');
+            
+            const filtered = state.medicationsDB.filter(m => m.name.includes(val)).slice(0, 8);
+            if(filtered.length === 0) return DOM.medDropdown().classList.add('hidden');
+
+            DOM.medDropdown().innerHTML = filtered.map(m => 
+                `<div class="autocomplete-item" onclick="selectMed('${m.name.replace(/'/g, "\\'")}')">
+                    <span>${m.name}</span> <span style="color:var(--muted); font-size:0.7rem; float:left;">${m.source}</span>
+                </div>`
+            ).join('');
+            DOM.medDropdown().classList.remove('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('#log-med-search') && !e.target.closest('#med-dropdown')) {
+                DOM.medDropdown().classList.add('hidden');
+            }
+        });
+    }
+
+    function selectMed(name) {
+        document.getElementById('log-med-search').value = name;
+        DOM.medDropdown().classList.add('hidden');
+        document.getElementById('log-qty').focus();
+    }
+
+    // Boot
+    document.addEventListener('DOMContentLoaded', initApp);
 
 </script>
 </body>
