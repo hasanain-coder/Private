@@ -6,23 +6,24 @@
     <title>الصيدلة السريرية - الجناح الخاص</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- مكتبة لقطة الشاشة + مكتبة توليد PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         :root {
             --bg: #f8fafc; --fg: #0f172a; --muted: #64748b; --accent: #0d9488;
             --accent-light: #ccfbf1; --card: #ffffff; --border: #e2e8f0;
             --surface: #f1f5f9; --shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
         }
         body.dark-mode {
             --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8; --accent: #2dd4bf;
             --accent-light: #134e4a; --card: #1e293b; --border: #334155;
             --surface: #1e293b; --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.4);
         }
         * { box-sizing: border-box; }
         body {
@@ -45,7 +46,7 @@
         .input-field { width: 100%; padding: 0.75rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; color: var(--fg); font-family: inherit; font-size: 1rem; transition: border-color 0.2s ease, box-shadow 0.2s ease; outline: none; }
         .input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 
-        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--border); border-top: none; z-index: 50; max-height: 250px; overflow-y: auto; border-radius: 0 0 0.75rem 0.75rem; box-shadow: var(--shadow-lg); }
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--border); border-top: none; z-index: 50; max-height: 250px; overflow-y: auto; border-radius: 0 0 0.75rem 0.75rem; box-shadow: var(--shadow); }
         .autocomplete-item { padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid var(--border); }
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:hover { background: var(--accent-light); }
@@ -56,12 +57,7 @@
         .matrix-table th:first-child, .matrix-table td:first-child { position: sticky; right: 0; z-index: 10; background: var(--card); box-shadow: -4px 0 8px rgba(0,0,0,0.05); min-width: 140px; text-align: right; padding-right: 8px; }
         .vertical-text { writing-mode: vertical-lr; transform: rotate(180deg); height: 160px; white-space: nowrap; display: inline-block; font-weight: 600; }
 
-        /* منطقة التقطيع الخفية */
         #capture-zone { position: fixed; top: 0; left: 0; z-index: -9999; background: white !important; color: black !important; }
-        
-        .capture-table { width: 100%; border-collapse: collapse; font-family: 'Cairo', Arial, sans-serif; color: #000; background: #fff; }
-        .capture-table th, .capture-table td { border: 1px solid #000 !important; padding: 6px 4px; text-align: center; font-size: 11px; color: #000; background: #fff; }
-        .capture-table th { background-color: #e0e0e0 !important; font-weight: bold; }
 
         .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; font-weight: bold; flex-direction: column; gap: 15px; }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s linear infinite; }
@@ -71,22 +67,13 @@
 <body>
 
     <header class="sticky top-0 z-40 backdrop-blur-lg border-b px-4 py-3 flex justify-between items-center" style="background-color: var(--bg); border-color: var(--border);">
-        <div>
-            <h1 class="text-lg font-bold">الجناح الخاص</h1>
-            <p class="text-xs" style="color: var(--muted)">الصيدلة السريرية</p>
-        </div>
-        <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full flex items-center justify-center border transition-transform active:scale-90" style="background: var(--surface); border-color: var(--border);">
-            <i id="theme-icon" class="fas fa-moon text-lg" style="color: var(--accent)"></i>
-        </button>
+        <div><h1 class="text-lg font-bold">الجناح الخاص</h1><p class="text-xs" style="color: var(--muted)">الصيدلة السريرية</p></div>
+        <button onclick="toggleDarkMode()" class="w-10 h-10 rounded-full flex items-center justify-center border transition-transform active:scale-90" style="background: var(--surface); border-color: var(--border);"><i id="theme-icon" class="fas fa-moon text-lg" style="color: var(--accent)"></i></button>
     </header>
 
     <main class="max-w-4xl mx-auto p-4">
-        <!-- VIEW: ADMISSIONS -->
         <div id="view-admissions" class="view-section">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-xl font-bold">المرضى الراقدين</h2>
-                <span id="patient-count" class="text-xs font-bold px-2 py-1 rounded-full" style="background: var(--accent-light); color: var(--accent)">0</span>
-            </div>
+            <div class="flex items-center justify-between mb-4"><h2 class="text-xl font-bold">المرضى الراقدين</h2><span id="patient-count" class="text-xs font-bold px-2 py-1 rounded-full" style="background: var(--accent-light); color: var(--accent)">0</span></div>
             <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
                 <button class="filter-pill active" onclick="setFilter('all', this)">الكل</button>
                 <button class="filter-pill" onclick="setFilter('male', this)">ذكور</button>
@@ -99,7 +86,6 @@
             <div id="no-patients" class="hidden text-center py-16" style="color: var(--muted)"><i class="fas fa-user-slash text-4xl mb-4 block opacity-50"></i><p class="font-semibold">لا يوجد مرضى</p></div>
         </div>
 
-        <!-- VIEW: DAILY LOG -->
         <div id="view-log" class="view-section hidden">
             <h2 class="text-xl font-bold mb-4">السجل اليومي</h2>
             <div class="card p-4 space-y-4">
@@ -108,46 +94,35 @@
                     <div><label class="block text-sm font-semibold mb-1">التاريخ</label><input type="date" id="log-date" class="input-field" onchange="checkForExistingLog()"></div>
                 </div>
                 <div class="relative">
-                    <label class="block text-sm font-semibold mb-1">اسم العلاج / المادة (English)</label>
-                    <input type="text" id="log-med-search" class="input-field" placeholder="Type to search..." autocomplete="off">
+                    <label class="block text-sm font-semibold mb-1">اسم العلاج (مثال: Paracetamol Tab)</label>
+                    <input type="text" id="log-med-search" class="input-field" placeholder="ابحث هنا..." autocomplete="off">
                     <div id="med-dropdown" class="autocomplete-list hidden"></div>
                 </div>
-                <div><label class="block text-sm font-semibold mb-1">الكمية (يقبل عربي وانكليزي)</label><input type="text" id="log-qty" class="input-field text-center text-lg font-bold" placeholder="١٢٣ أو 123" value="1"></div>
+                <div><label class="block text-sm font-semibold mb-1">الكمية</label><input type="text" id="log-qty" class="input-field text-center text-lg font-bold" placeholder="١٢٣ أو 123" value="1"></div>
                 <button onclick="addToTempLog()" class="w-full py-3.5 rounded-xl font-bold text-white transition-all active:scale-95 text-lg" style="background: var(--accent)"><i class="fas fa-plus ml-2"></i>أضافة للقائمة</button>
             </div>
             <div class="card mt-4">
-                <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--border)">
-                    <h3 class="font-bold">العلاجات المضافة</h3>
-                    <button id="btn-delete-log" onclick="deleteCurrentLog()" class="text-xs text-red-500 font-bold hidden"><i class="fas fa-trash ml-1"></i>حذف السجل</button>
-                </div>
+                <div class="p-4 border-b flex justify-between items-center" style="border-color: var(--border)"><h3 class="font-bold">العلاجات المضافة</h3><button id="btn-delete-log" onclick="deleteCurrentLog()" class="text-xs text-red-500 font-bold hidden"><i class="fas fa-trash ml-1"></i>حذف السجل</button></div>
                 <div id="temp-log-container" class="p-4"><p class="text-sm text-center" style="color: var(--muted)">القائمة فارغة</p></div>
-                <div class="p-4 border-t" style="border-color: var(--border)">
-                    <button id="btn-save-log" onclick="saveLog()" disabled class="w-full py-3.5 rounded-xl font-bold text-white transition-all disabled:opacity-50 active:scale-95" style="background: var(--fg)"><i class="fas fa-cloud-arrow-up ml-2"></i>حفظ / تحديث السجل</button>
-                </div>
+                <div class="p-4 border-t" style="border-color: var(--border)"><button id="btn-save-log" onclick="saveLog()" disabled class="w-full py-3.5 rounded-xl font-bold text-white transition-all disabled:opacity-50 active:scale-95" style="background: var(--fg)"><i class="fas fa-cloud-arrow-up ml-2"></i>حفظ / تحديث السجل</button></div>
             </div>
         </div>
 
-        <!-- VIEW: MATRIX CHART -->
         <div id="view-chart" class="view-section hidden">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-bold">الخارطة اليومية</h2>
-                <button onclick="printMatrixAsImage()" class="text-sm font-semibold px-4 py-2 rounded-lg border flex items-center gap-2 active:scale-95" style="border-color: var(--border); color: var(--accent); background: var(--accent-light);"><i class="fas fa-image"></i> تحميل / طباعة A4 عرضي</button>
+                <button onclick="generateMatrixPDF()" class="text-sm font-semibold px-4 py-2 rounded-lg border flex items-center gap-2 active:scale-95" style="border-color: var(--border); color: var(--accent); background: var(--accent-light);"><i class="fas fa-file-pdf"></i> توليد PDF عرضي</button>
             </div>
             <div class="mb-4"><input type="date" id="chart-date" class="input-field" onchange="renderMatrix()"></div>
             <div id="matrix-container" class="matrix-wrapper bg-[var(--card)]"></div>
         </div>
 
-        <!-- VIEW: DISCHARGE -->
         <div id="view-discharge" class="view-section hidden">
             <h2 class="text-xl font-bold mb-4">التصريف والفاتورة</h2>
             <div class="card p-4 space-y-4">
                 <div><label class="block text-sm font-semibold mb-1">اختر المريض</label><select id="dis-patient" class="input-field"></select></div>
                 <div><label class="block text-sm font-semibold mb-1">تاريخ التصريف</label><input type="date" id="dis-date" class="input-field"></div>
-                <button onclick="generateDischargeInvoice()" class="w-full py-3.5 rounded-xl font-bold text-white transition-all active:scale-95" style="background: #ea580c"><i class="fas fa-file-invoice-dollar ml-2"></i>توليد الفاتورة</button>
-            </div>
-            <div id="discharge-preview" class="card mt-4 p-4 hidden">
-                <button onclick="printInvoiceAsImage()" class="w-full py-3.5 rounded-xl font-bold text-white transition-all active:scale-95 mb-4 flex items-center justify-center gap-2" style="background: var(--fg)"><i class="fas fa-image"></i> طباعة / حفظ صورة الفاتورة</button>
-                <div id="invoice-html" class="border rounded-lg p-2 text-sm overflow-x-auto" style="border-color: var(--border); transform: scale(0.9); transform-origin: top right;"></div>
+                <button onclick="generateInvoicePDF()" class="w-full py-3.5 rounded-xl font-bold text-white transition-all active:scale-95" style="background: #ea580c"><i class="fas fa-file-pdf ml-2"></i>توليد فاتورة PDF</button>
             </div>
         </div>
     </main>
@@ -168,10 +143,7 @@
             <input type="hidden" id="p-edit-id" value="">
             <div class="space-y-4">
                 <input type="text" id="p-name" class="input-field" placeholder="اسم المريض">
-                <div class="flex gap-3">
-                    <input type="text" id="p-file" class="input-field flex-1" placeholder="رقم الطبّلة">
-                    <input type="text" id="p-room" class="input-field w-24" placeholder="الغرفة">
-                </div>
+                <div class="flex gap-3"><input type="text" id="p-file" class="input-field flex-1" placeholder="رقم الطبّلة"><input type="text" id="p-room" class="input-field w-24" placeholder="الغرفة"></div>
                 <select id="p-ward" class="input-field"><option value="male">ذكور</option><option value="female">إناث</option></select>
                 <input type="date" id="p-date" class="input-field">
                 <button onclick="savePatient()" class="w-full py-3.5 rounded-xl font-bold text-white transition-all active:scale-95" style="background: var(--accent)">حفظ البيانات</button>
@@ -184,18 +156,24 @@
 <script>
     const state = { patients: [], dailyLogs: [], medicationsDB: [], tempLogItems: [], currentView: 'admissions', activeFilter: 'all', editingLogId: null };
     
+    // تنظيف اسم الدواء من الجرعات (لإظهار اسم الدواء ونوعه فقط)
+    function cleanMedName(name) {
+        return name.replace(/\s+\d+(\.\d+)?\s*(mg|ml|g|mcg|%|iu|units?)?/gi, '').trim();
+    }
     function toEnglishNum(str) { if(!str) return '0'; return str.toString().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); }
     function formatNum(num) { return new Intl.NumberFormat('en-US').format(num); }
+    function toVerticalText(str) { return str.split('').join('<br>'); }
 
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv&gid=0";
+    // أسماء الأدوية محدثة لتكون بدون جرعات
     const mockMeds = [
-        {name: "Amoxicillin 500mg Cap", price: 250, source: "Kimadia"}, {name: "Ciprofloxacin 400mg Inj", price: 1500, source: "Purchase"},
-        {name: "Normal Saline 0.9% 500ml", price: 1000, source: "Purchase"}, {name: "Dextrose 5% 500ml", price: 1200, source: "Kimadia"},
-        {name: "Paracetamol 500mg Tab", price: 100, source: "Kimadia"}, {name: "Dexamethasone 8mg Inj", price: 800, source: "Purchase"},
-        {name: "Omeprazole 40mg Cap", price: 350, source: "Kimadia"}, {name: "Atropine 0.1% Inj", price: 500, source: "Purchase"},
-        {name: "Surgical Gloves (Box)", price: 2500, source: "Purchase"}, {name: "Syringe 10ml", price: 300, source: "Kimadia"},
-        {name: "Vitamin C 500mg", price: 150, source: "Kimadia"}, {name: "Tramadol 100mg Inj", price: 2000, source: "Purchase"},
-        {name: "Heparin 5000 IU", price: 3500, source: "Purchase"}, {name: "Loratadine 10mg Tab", price: 200, source: "Kimadia"},
+        {name: "Amoxicillin Cap", price: 250, source: "Kimadia"}, {name: "Ciprofloxacin Inj", price: 1500, source: "Purchase"},
+        {name: "Normal Saline Sol", price: 1000, source: "Purchase"}, {name: "Dextrose Sol", price: 1200, source: "Kimadia"},
+        {name: "Paracetamol Tab", price: 100, source: "Kimadia"}, {name: "Dexamethasone Inj", price: 800, source: "Purchase"},
+        {name: "Omeprazole Cap", price: 350, source: "Kimadia"}, {name: "Atropine Inj", price: 500, source: "Purchase"},
+        {name: "Surgical Gloves", price: 2500, source: "Purchase"}, {name: "Syringe 10ml", price: 300, source: "Kimadia"},
+        {name: "Vitamin C Tab", price: 150, source: "Kimadia"}, {name: "Tramadol Inj", price: 2000, source: "Purchase"},
+        {name: "Heparin Inj", price: 3500, source: "Purchase"}, {name: "Loratadine Tab", price: 200, source: "Kimadia"},
         {name: "Gauze Bandage", price: 750, source: "Purchase"}
     ];
 
@@ -224,13 +202,12 @@
         if(v === 'log' || v === 'discharge') populateDropdowns();
         if(v === 'log') renderTempLog();
         if(v === 'chart') renderMatrix();
-        if(v === 'discharge') document.getElementById('discharge-preview').classList.add('hidden');
     }
     function toggleDarkMode() { document.body.classList.toggle('dark-mode'); const isD = document.body.classList.contains('dark-mode'); localStorage.setItem('darkMode', isD); document.getElementById('theme-icon').classList.replace(isD ? 'fa-moon' : 'fa-sun', isD ? 'fa-sun' : 'fa-moon'); }
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); } function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-    
     function showLoading(text) { const div = document.createElement('div'); div.className = 'loading-overlay'; div.id = 'loading-overlay'; div.innerHTML = `<div class="spinner"></div><span>${text}</span>`; document.body.appendChild(div); }
     function hideLoading() { document.getElementById('loading-overlay')?.remove(); }
+    function showToast(msg) { const t = document.createElement('div'); t.className = 'fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl z-[60] text-white font-semibold text-sm'; t.style.background = 'var(--fg)'; t.innerText = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
 
     function renderApp() { renderPatients(); renderTempLog(); }
     
@@ -268,154 +245,158 @@
     function saveLog() { const pId = document.getElementById('log-patient').value; const date = document.getElementById('log-date').value; if(!pId || !date || state.tempLogItems.length === 0) return showToast("بيانات ناقصة"); if(state.editingLogId) { const idx = state.dailyLogs.findIndex(l => l.id === state.editingLogId); if(idx !== -1) state.dailyLogs[idx].items = [...state.tempLogItems]; } else { state.dailyLogs.push({ id: 'log_' + Date.now(), patientId: pId, date, items: [...state.tempLogItems] }); } state.tempLogItems = []; state.editingLogId = null; saveState(); renderTempLog(); document.getElementById('log-patient').value = ''; showToast("تم الحفظ بنجاح"); }
     function deleteCurrentLog() { if(state.editingLogId && confirm("حذف سجل اليوم بالكامل؟")) { state.dailyLogs = state.dailyLogs.filter(l => l.id !== state.editingLogId); state.tempLogItems = []; state.editingLogId = null; saveState(); renderTempLog(); showToast("تم حذف السجل"); } }
 
-    // --- MATRIX CHART (SCREEN VIEW) ---
     function renderMatrix() {
         const c = document.getElementById('matrix-container'); const date = document.getElementById('chart-date').value;
         if(!date) return c.innerHTML = '<p class="p-10 text-center" style="color:var(--muted)">حدد تاريخاً</p>';
         const dayLogs = state.dailyLogs.filter(l => l.date === date); const activeP = state.patients.filter(p => p.status === 'active');
-        let medsMap = {}; dayLogs.forEach(l => l.items.forEach(i => { medsMap[i.name] = true; })); const medCols = Object.keys(medsMap);
+        let medsMap = {}; dayLogs.forEach(l => l.items.forEach(i => { medsMap[cleanMedName(i.name)] = true; })); const medCols = Object.keys(medsMap);
         if(medCols.length === 0) return c.innerHTML = `<p class="p-10 text-center" style="color:var(--muted)"><i class="fas fa-chart-simple text-3xl block mb-2 opacity-30"></i>لا توجد سجلات</p>`;
-        
         let rows = Array.from({length: 30}, (_, i) => ({ num: i + 1, patient: null, meds: {} }));
-        activeP.forEach((p, idx) => { if(idx < 30) { rows[idx].patient = p; dayLogs.filter(l => l.patientId === p.id).forEach(log => log.items.forEach(item => { if(!rows[idx].meds[item.name]) rows[idx].meds[item.name] = 0; rows[idx].meds[item.name] += item.quantity; })); }});
-        
-        let html = `<table class="matrix-table"><thead><tr><th>ت / المريض</th>`;
-        medCols.forEach(m => { html += `<th><div class="vertical-text">${m}</div></th>`; });
-        html += `</tr></thead><tbody>`; let totals = new Array(medCols.length).fill(0);
-        rows.forEach(row => {
-            const pN = row.patient ? `${row.patient.name}` : '';
-            html += `<tr><td>${row.num}. ${pN}</td>`;
-            medCols.forEach((m, i) => { const q = row.meds[m] || ''; if(q !== '') totals[i] += q; html += `<td class="font-bold" style="color: ${q ? 'var(--accent)' : 'var(--muted)'}">${q}</td>`; }); html += `</tr>`;
-        });
-        html += `<tr style="background: var(--surface); font-weight:900;"><td>الإجمالي</td>`; totals.forEach(t => { html += `<td>${t > 0 ? t : ''}</td>`; }); html += `</tr></tbody></table>`;
-        c.innerHTML = html;
+        activeP.forEach((p, idx) => { if(idx < 30) { rows[idx].patient = p; dayLogs.filter(l => l.patientId === p.id).forEach(log => log.items.forEach(item => { const cName = cleanMedName(item.name); if(!rows[idx].meds[cName]) rows[idx].meds[cName] = 0; rows[idx].meds[cName] += item.quantity; })); }});
+        let html = `<table class="matrix-table"><thead><tr><th>ت / المريض</th>`; medCols.forEach(m => { html += `<th><div class="vertical-text">${m}</div></th>`; }); html += `</tr></thead><tbody>`; let totals = new Array(medCols.length).fill(0);
+        rows.forEach(row => { const pN = row.patient ? `${row.patient.name}` : ''; html += `<tr><td>${row.num}. ${pN}</td>`; medCols.forEach((m, i) => { const q = row.meds[m] || ''; if(q !== '') totals[i] += q; html += `<td class="font-bold" style="color: ${q ? 'var(--accent)' : 'var(--muted)'}">${q}</td>`; }); html += `</tr>`; });
+        html += `<tr style="background: var(--surface); font-weight:900;"><td>الإجمالي</td>`; totals.forEach(t => { html += `<td>${t > 0 ? t : ''}</td>`; }); html += `</tr></tbody></table>`; c.innerHTML = html;
     }
 
-    // --- EXACT A4 LANDSCAPE MATRIX PRINT ---
-    async function printMatrixAsImage() {
+    // --- توليد خارطة A4 عرضي كـ PDF ---
+    async function generateMatrixPDF() {
         const date = document.getElementById('chart-date').value; if(!date) return showToast("حدد التاريخ");
         const dayLogs = state.dailyLogs.filter(l => l.date === date); const activeP = state.patients.filter(p => p.status === 'active');
-        let medsMap = {}; dayLogs.forEach(l => l.items.forEach(i => { medsMap[i.name] = true; })); 
+        let medsMap = {}; dayLogs.forEach(l => l.items.forEach(i => { medsMap[cleanMedName(i.name)] = true; })); 
         let medCols = Object.keys(medsMap);
-        
-        // تثبيت عدد الأعمدة بـ 35 عمود تماماً كما في الصورة
-        while(medCols.length < 35) medCols.push(""); 
-        if(medCols.length > 35) medCols = medCols.slice(0, 35);
+        while(medCols.length < 35) medCols.push(""); if(medCols.length > 35) medCols = medCols.slice(0, 35);
 
         let rows = Array.from({length: 30}, (_, i) => ({ num: i + 1, patient: null, meds: {} }));
-        activeP.forEach((p, idx) => { if(idx < 30) { rows[idx].patient = p; dayLogs.filter(l => l.patientId === p.id).forEach(log => log.items.forEach(item => { if(!rows[idx].meds[item.name]) rows[idx].meds[item.name] = 0; rows[idx].meds[item.name] += item.quantity; })); }});
+        activeP.forEach((p, idx) => { if(idx < 30) { rows[idx].patient = p; dayLogs.filter(l => l.patientId === p.id).forEach(log => log.items.forEach(item => { const cName = cleanMedName(item.name); if(!rows[idx].meds[cName]) rows[idx].meds[cName] = 0; rows[idx].meds[cName] += item.quantity; })); }});
 
-        // حساب مقاسات A4 عرضي بالبكسل بدقة (96 DPI)
-        const pageW = 1122; const pageH = 793; const pad = 30;
-        const innerW = pageW - (pad * 2); // 1062
-        const titleH = 25; 
-        const innerH = pageH - (pad * 2) - titleH - 5; // 708
-        const rowH = innerH / 31; // 22.84px (30 مريض + 1 إجمالي)
-        
-        const colNumW = 30; 
-        const colNameW = 80; 
-        const colMedW = (innerW - colNumW - colNameW) / 35; // 28.05px
+        // قياسات A4 عرضي بالبكسل (96 DPI)
+        const pageW = 1122; const pageH = 793; const pad = 25;
+        const innerW = pageW - (pad * 2); // 1072
+        const titleH = 30; const innerH = pageH - (pad * 2) - titleH - 5; // 713
+        const rowH = innerH / 31; // ~23px
+        const colNumW = 35; const colNameW = 95; const colMedW = (innerW - colNumW - colNameW) / 35; // ~28px
 
-        let thead = `<tr style="height:${rowH}px; background:#e0e0e0;"><th style="width:${colNumW}px; border:1px solid #000; padding:0; font-size:7px; color:#000;">ت</th><th style="width:${colNameW}px; border:1px solid #000; padding:0; font-size:7px; color:#000;">المريض</th>`;
+        let thead = `<tr style="height:${rowH}px; background:#d9d9d9;"><th style="width:${colNumW}px; border:1px solid #000; padding:0; font-size:9px; color:#000; font-weight:bold;">ت</th><th style="width:${colNameW}px; border:1px solid #000; padding:0; font-size:9px; color:#000; font-weight:bold;">المريض</th>`;
         medCols.forEach(m => {
-            if(m) thead += `<th style="width:${colMedW}px; border:1px solid #000; padding:0; overflow:hidden; color:#000;"><div style="writing-mode:vertical-rl; transform:rotate(180deg); height:100%; display:flex; align-items:center; justify-content:center; white-space:nowrap; font-size:6px; font-weight:bold;">${m}</div></th>`;
-            else thead += `<th style="width:${colMedW}px; border:1px solid #000; padding:0; color:#000;"></th>`;
+            thead += `<th style="width:${colMedW}px; border:1px solid #000; padding:0; overflow:hidden; color:#000;"><div style="height:100%; display:flex; align-items:center; justify-content:center; white-space:nowrap; font-size:9px; font-weight:bold; line-height:1.1;">${m ? toVerticalText(m) : ''}</div></th>`;
         });
         thead += `</tr>`;
 
         let tbody = ''; let totals = new Array(35).fill(0);
         rows.forEach(row => {
             const pName = row.patient ? row.patient.name : '';
-            tbody += `<tr style="height:${rowH}px; background:#fff;"><td style="width:${colNumW}px; border:1px solid #000; padding:0; text-align:center; font-size:7px; color:#000;">${row.num}</td><td style="width:${colNameW}px; border:1px solid #000; padding:0 2px; text-align:right; font-size:7px; color:#000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${pName}</td>`;
+            tbody += `<tr style="height:${rowH}px; background:#fff;"><td style="width:${colNumW}px; border:1px solid #000; padding:0; text-align:center; font-size:9px; color:#000;">${row.num}</td><td style="width:${colNameW}px; border:1px solid #000; padding:0 3px; text-align:right; font-size:9px; color:#000; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${pName}</td>`;
             medCols.forEach((m, idx) => {
                 const q = (m && row.meds[m]) ? row.meds[m] : '';
                 if(q !== '') totals[idx] += q;
-                tbody += `<td style="width:${colMedW}px; border:1px solid #000; padding:0; text-align:center; font-size:8px; color:#000; font-weight:bold;">${q}</td>`;
+                tbody += `<td style="width:${colMedW}px; border:1px solid #000; padding:0; text-align:center; font-size:10px; color:#000; font-weight:bold;">${q}</td>`;
             });
             tbody += `</tr>`;
         });
         
-        tbody += `<tr style="height:${rowH}px; background:#f0f0f0; font-weight:bold;"><td colspan="2" style="border:1px solid #000; padding:0; text-align:center; font-size:7px; color:#000;">الإجمالي</td>`;
-        totals.forEach(t => { tbody += `<td style="border:1px solid #000; padding:0; text-align:center; font-size:8px; color:#000;">${t > 0 ? t : ''}</td>`; });
+        tbody += `<tr style="height:${rowH}px; background:#e6e6e6; font-weight:bold;"><td colspan="2" style="border:1px solid #000; padding:0; text-align:center; font-size:9px; color:#000;">الإجمالي</td>`;
+        totals.forEach(t => { tbody += `<td style="border:1px solid #000; padding:0; text-align:center; font-size:10px; color:#000;">${t > 0 ? t : ''}</td>`; });
         tbody += `</tr>`;
 
         const fullHtml = `<div style="width:${pageW}px; height:${pageH}px; background:white; padding:${pad}px; box-sizing:border-box; font-family:Arial,sans-serif; overflow:hidden; position: relative;">
-            <div style="height:${titleH}px; text-align:center; font-size:12px; font-weight:bold; margin-bottom:5px; color:#000; line-height:25px;">Daily Medication Matrix - ${date}</div>
+            <div style="height:${titleH}px; text-align:center; font-size:16px; font-weight:bold; margin-bottom:5px; color:#000; line-height:${titleH}px;">Daily Medication Matrix - ${date}</div>
             <table style="width:${innerW}px; height:${innerH}px; table-layout:fixed; border-collapse:collapse; border:1px solid #000;">
-                <thead>${thead}</thead>
-                <tbody>${tbody}</tbody>
-            </table>
-        </div>`;
+                <thead>${thead}</thead><tbody>${tbody}</tbody>
+            </table></div>`;
         
         document.getElementById('capture-zone').innerHTML = fullHtml;
-        showLoading("جارٍ تجهيز الخارطة بدقة A4...");
+        showLoading("جارٍ توليد الـ PDF...");
         
         setTimeout(async () => {
             try {
                 const canvas = await html2canvas(document.getElementById('capture-zone').firstChild, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-                openImagePrintWindow(canvas, 'landscape');
-            } catch(e) { console.error(e); showToast("حدث خطأ أثناء التقطيع"); } 
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 297, 210);
+                pdf.save(`Matrix_${date}.pdf`);
+            } catch(e) { console.error(e); showToast("حدث خطأ"); } 
             finally { hideLoading(); }
         }, 500);
     }
 
-    // --- INVOICE LOGIC ---
-    function generateDischargeInvoice() {
+    // --- توليد فاتورة A4 طولي كـ PDF ---
+    async function generateInvoicePDF() {
         const pId = document.getElementById('dis-patient').value; const disDate = document.getElementById('dis-date').value;
-        const preview = document.getElementById('discharge-preview'); const c = document.getElementById('invoice-html');
         if(!pId || !disDate) return showToast("اختر المريض وتاريخ التصريف");
         const p = state.patients.find(x => x.id === pId); if(!p) return;
         const pLogs = state.dailyLogs.filter(l => l.patientId === pId && l.date >= p.admissionDate && l.date <= disDate);
         let agg = {}; pLogs.forEach(l => l.items.forEach(i => { if(!agg[i.name]) agg[i.name] = 0; agg[i.name] += i.quantity; }));
         const meds = Object.entries(agg);
         if(meds.length === 0) return showToast("لا توجد أدوية مسجلة");
-        c.innerHTML = buildInvoiceHTML(p, meds, disDate); preview.classList.remove('hidden'); preview.scrollIntoView({ behavior: 'smooth' });
-    }
 
-    function buildInvoiceHTML(p, meds, disDate) {
-        let rowsHtml = '';
-        meds.forEach(([name, qty], i) => { const dbM = state.medicationsDB.find(m => m.name === name); const price = dbM ? dbM.price : 0; const src = dbM ? dbM.source : ""; const sub = price * qty; rowsHtml += `<tr><td>${i+1}</td><td style="text-align:right; padding-right:8px;">${name}</td><td>${qty}</td><td>${src}</td><td>${price > 0 ? formatNum(price) : ''}</td><td>${sub > 0 ? formatNum(sub) : ''}</td><td>&nbsp;</td><td>&nbsp;</td></tr>`; });
-        for(let i=0; i<10; i++) { rowsHtml += `<tr><td>${meds.length + i + 1}</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>`; }
+        showLoading("جارٍ توليد فاتورة الـ PDF...");
 
-        return `<div style="font-family: 'Cairo', sans-serif; color: #000; background: #fff; padding: 15px; width: 1100px; min-width: 1100px;">
-            <div style="text-align: center; margin-bottom: 15px; line-height: 1.6; font-weight: bold; font-size: 16px;"><p>مستشفى بغداد التعليمي - وحدة الصيدلة السريرية</p><p>القطاع الخاص للمرضى الراقدين في الجناح الخاص</p><p style="font-size: 14px; margin-top: 5px;">قائمة الأدوية المصروفة من تاريخ: ${p.admissionDate} لغاية: ${disDate}</p></div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; padding: 8px; border: 1px solid #000; font-size: 13px; font-weight: bold; background: #f9f9f9;"><div>اسم المريض: ${p.name}</div><div>رقم الطبّلة: ${p.fileNumber}</div><div>الردهة: ${p.ward === 'male' ? 'ذكور' : 'إناث'}</div><div>تاريخ الدخول: ${p.admissionDate}</div><div>تاريخ التصريف: ${disDate}</div></div>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;"><thead><tr style="background: #e0e0e0;"><th style="border: 1px solid #000; padding: 6px; width: 5%;">ت</th><th style="border: 1px solid #000; padding: 6px; width: 30%; text-align:right;">اسم المادة</th><th style="border: 1px solid #000; padding: 6px; width: 8%;">الكمية المصروفة</th><th style="border: 1px solid #000; padding: 6px; width: 12%;">شراء أو كيماديا</th><th style="border: 1px solid #000; padding: 6px; width: 13%;">سعر المفرد</th><th style="border: 1px solid #000; padding: 6px; width: 12%;">المجموع</th><th style="border: 1px solid #000; padding: 6px; width: 10%;">فروقات إدارية</th><th style="border: 1px solid #000; padding: 6px; width: 10%;">الإجمالي</th></tr></thead><tbody>${rowsHtml}</tbody></table>
-            <div style="display: flex; justify-content: space-between; margin-top: 60px; font-weight: bold; font-size: 14px;"><div>الصيدلي السريري</div><div>اسم وتوقيع محاسب الجناح الخاص</div><div>اسم وتوقيع مدير الجناح الخاص</div></div></div>`;
-    }
+        // قياسات A4 طولي بالبكسل
+        const pageW = 793; const pageH = 1122; const pad = 30;
+        const innerW = pageW - (pad * 2); // 733
+        const titleH = 70; const infoH = 35; const signH = 50; const gap = 10;
+        const tableH = pageH - (pad * 2) - titleH - infoH - signH - (gap * 3); // 897
+        const rowH = tableH / 25; // ~35px لكل صف
 
-    async function printInvoiceAsImage() {
-        const pId = document.getElementById('dis-patient').value; const disDate = document.getElementById('dis-date').value;
-        const p = state.patients.find(x => x.id === pId); if(!p) return;
-        const pLogs = state.dailyLogs.filter(l => l.patientId === pId && l.date >= p.admissionDate && l.date <= disDate);
-        let agg = {}; pLogs.forEach(l => l.items.forEach(i => { if(!agg[i.name]) agg[i.name] = 0; agg[i.name] += i.quantity; }));
-        
-        document.getElementById('capture-zone').innerHTML = buildInvoiceHTML(p, Object.entries(agg), disDate);
-        showLoading("جارٍ تجهيز الفاتورة...");
+        // أعمدة ثابتة العرض لتملأ الصفحة بالضبط
+        const cols = [
+            {w: 30, t:"ت"}, {w: 210, t:"اسم المادة"}, {w: 80, t:"الكمية المصروفة"}, {w: 95, t:"شراء أو كيماديا"},
+            {w: 95, t:"سعر المفرد"}, {w: 95, t:"المجموع"}, {w: 64, t:"فروقات إدارية"}, {w: 64, t:"الإجمالي"}
+        ];
+
+        let thead = `<tr style="height:${rowH}px; background:#d9d9d9;">`;
+        cols.forEach(c => { thead += `<th style="width:${c.w}px; border:1px solid #000; padding:0; font-size:11px; color:#000; font-weight:bold;">${c.t}</th>`; });
+        thead += `</tr>`;
+
+        let tbody = '';
+        for(let i=0; i<25; i++) {
+            if(i < meds.length) {
+                const [name, qty] = meds[i]; const dbM = state.medicationsDB.find(m => m.name === name); const price = dbM ? dbM.price : 0; const src = dbM ? dbM.source : ""; const sub = price * qty;
+                tbody += `<tr style="height:${rowH}px; background:#fff;"><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${i+1}</td><td style="border:1px solid #000; padding:0 4px; text-align:right; font-size:11px; color:#000;">${name}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${qty}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${src}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${price > 0 ? formatNum(price) : ''}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${sub > 0 ? formatNum(sub) : ''}</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td><td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">&nbsp;</td></tr>`;
+            } else {
+                tbody += `<tr style="height:${rowH}px; background:#fff;">`;
+                cols.forEach((c, idx) => { tbody += `<td style="border:1px solid #000; padding:0; font-size:11px; color:#000;">${idx === 0 ? i+1 : '&nbsp;'}</td>`; });
+                tbody += `</tr>`;
+            }
+        }
+
+        const fullHtml = `<div style="width:${pageW}px; height:${pageH}px; background:white; padding:${pad}px; box-sizing:border-box; font-family:'Cairo',Arial,sans-serif; overflow:hidden; position:relative; color:#000;">
+            <div style="height:${titleH}px; text-align:center; font-weight:bold; font-size:16px; line-height:1.8; color:#000; display:flex; flex-direction:column; justify-content:center;">
+                <p>مستشفى بغداد التعليمي - وحدة الصيدلة السريرية</p>
+                <p>القطاع الخاص للمرضى الراقدين في الجناح الخاص</p>
+                <p style="font-size:14px;">قائمة الأدوية المصروفة من تاريخ: ${p.admissionDate} لغاية: ${disDate}</p>
+            </div>
+            
+            <div style="height:${infoH}px; display:flex; justify-content:space-between; align-items:center; margin-bottom:${gap}px; padding:0 10px; border:1px solid #000; font-size:13px; font-weight:bold; background:#f9f9f9; color:#000;">
+                <div>اسم المريض: ${p.name}</div>
+                <div>رقم الطبّلة: ${p.fileNumber}</div>
+                <div>الردهة: ${p.ward === 'male' ? 'ذكور' : 'إناث'}</div>
+            </div>
+
+            <table style="width:${innerW}px; height:${tableH}px; table-layout:fixed; border-collapse:collapse; border:1px solid #000;">
+                <thead>${thead}</thead>
+                <tbody>${tbody}</tbody>
+            </table>
+
+            <div style="height:${signH}px; display:flex; justify-content:space-between; align-items:flex-end; margin-top:${gap}px; font-weight:bold; font-size:14px; color:#000; padding-bottom:10px;">
+                <div>الصيدلي السريري</div>
+                <div>اسم وتوقيع محاسب الجناح الخاص</div>
+                <div>اسم وتوقيع مدير الجناح الخاص</div>
+            </div>
+        </div>`;
+
+        document.getElementById('capture-zone').innerHTML = fullHtml;
         
         setTimeout(async () => {
             try {
                 const canvas = await html2canvas(document.getElementById('capture-zone').firstChild, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-                openImagePrintWindow(canvas, 'landscape');
-            } catch(e) { showToast("حدث خطأ أثناء التقطيع"); } 
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+                pdf.save(`Invoice_${p.name}_${disDate}.pdf`);
+            } catch(e) { console.error(e); showToast("حدث خطأ"); } 
             finally { hideLoading(); }
         }, 500);
-    }
-
-    function openImagePrintWindow(canvas, orientation) {
-        const imgData = canvas.toDataURL('image/png');
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <html><head><title>طباعة</title>
-            <style>
-                @page { size: ${orientation}; margin: 5mm; }
-                body { margin: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; background: #fff; }
-                img { max-width: 100%; height: auto; }
-            </style></head><body>
-            <img src="${imgData}" onload="setTimeout(()=>{ window.print(); }, 800);">
-            </body></html>
-        `);
-        printWindow.document.close();
     }
 
     function setupListeners() {
